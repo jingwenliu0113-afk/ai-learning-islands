@@ -113,6 +113,8 @@ js/lesson.js        上課流程
 js/gemini.js        AI 助教（Gemini API：分享的額度或自己的金鑰）
 js/config.js        分享額度的中繼站網址（只有網址，沒有金鑰）
 js/ui.js            畫面上的面板、選單、設定
+js/sound.js         音效（用 Web Audio 即時合成，沒有音檔）
+js/main.js          啟動：讀存檔、建立 3D 世界、介面與小遊戲
 data/content.js     題庫（79 堂、1387 題）
 ```
 
