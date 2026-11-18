@@ -582,3 +582,21 @@ body.night .spot-tag, body.night .isl-tag { background: rgba(255, 250, 240, .86)
   .modes { grid-template-columns: 1fr 1fr; }
   .sum-top { flex-direction: column; }
 }
+
+/* ---------- 釣魚：畫面下方的題目區（不是視窗，3D 場景照樣看得到） ---------- */
+.fish-hud { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); width: min(760px, calc(100% - 28px)); max-height: 46vh; overflow: auto; z-index: 30; background: rgba(255, 250, 240, .96); border-radius: 18px; box-shadow: 0 14px 40px rgba(30, 40, 60, .28); padding: 12px 16px 12px; animation: fh-up .25s ease; }
+.fish-hud[hidden] { display: none; }
+@keyframes fh-up { from { opacity: 0; transform: translate(-50%, 24px); } }
+.fh-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 4px; }
+.fh-top b { font-size: 16px; } .fh-top span { font-size: 13px; color: var(--ink2); }
+.fish-hud .pl-timer { margin: 4px 0 8px; }
+.fish-hud .qz-meta { margin-bottom: 6px; }
+.fish-hud .qz-q { font-size: 15px; }
+.fish-hud .opt { padding: 7px 10px; }
+.fh-foot { position: sticky; bottom: -12px; display: flex; justify-content: flex-end; gap: 8px; margin: 8px -16px -12px; padding: 10px 16px 12px; background: rgba(255, 250, 240, .98); border-top: 1px dashed var(--line); }
+.fh-foot kbd { background: rgba(255, 255, 255, .25); border-radius: 6px; padding: 0 6px; font: 700 12px/18px var(--font); margin-right: 4px; }
+.prompt.alert { background: #e74c3c; color: #fff; animation: fish-alert .35s ease-in-out infinite alternate; }
+.prompt.alert kbd { background: #fff; color: #e74c3c; }
+@keyframes fish-alert { from { scale: 1; } to { scale: 1.12; } }
+@media (max-width: 640px) { .fish-hud { bottom: 8px; width: calc(100% - 16px); max-height: 56vh; padding: 10px 12px; } .fh-foot { margin: 8px -12px -10px; padding: 8px 12px 10px; } }
+body.fish-q #guidebar, body.fish-q #joy { visibility: hidden; }
