@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 學習群島</title>
+<link rel="stylesheet" href="css/style.css?v=17">
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="scene"></canvas>
+    <div id="labels"></div>
+    <div id="no3d">這個瀏覽器無法顯示 3D 世界。右上角的「清單」仍然可以選課練習。</div>
+
+    <button id="hud-me" type="button" title="個人資料">
+      <span class="face"><img id="hud-face" alt=""><b id="hud-lv">Lv1</b></span>
+      <span class="hud-info">
+        <span class="hud-row"><span id="hud-isl"></span><span id="hud-xp"></span></span>
+        <span class="hud-bar"><i id="hud-xpbar"></i></span>
+        <span class="hud-row"><span>🪙 <b id="hud-coin">0</b></span><span>已解 <b id="hud-solved">0</b></span></span>
+      </span>
+    </button>
+
+    <nav id="hud-tools" aria-label="工具">
+      <button id="btn-map" type="button" title="航海圖：搭船去其他島">⛵ 航海圖</button>
+      <button id="btn-list" type="button" title="清單模式：直接選課">☰ 清單</button>
+      <button id="btn-bugs" type="button" title="蟲蟲圖鑑">🐞 圖鑑</button>
+      <button id="btn-daily" type="button" title="每日佈告欄">🔥 <b>0</b> 每日</button>
+      <button id="btn-wear" type="button" title="打扮">👕 打扮</button>
+      <button id="btn-home" type="button" title="回我的小島">🏠 回家</button>
+      <button id="btn-sound" type="button" title="音效">🔊</button>
+      <button id="btn-settings" type="button" title="設定">設定</button>
+    </nav>
+
+    <div id="guidebar">
+      <span class="gb-bot" aria-hidden="true"></span>
+      <span id="gb-text"></span>
+      <button id="gb-go" type="button">出發 →</button>
+    </div>
+
+    <aside id="course" hidden></aside>
+    <aside id="drawer" hidden></aside>
+    <div id="fade"></div>
+    <div id="lvup" hidden></div>
+  </div>
+
+  <div id="modal" hidden><div class="modal-card"></div></div>
+  <div id="toast" role="status"></div>
+</div>
+
+<script src="js/lib/three.min.js"></script>
+<script>window.GAME_SHARED = true;</script>
+<script src="data/content.js?v=17"></script>
+<script src="js/store.js?v=17"></script>
+<script src="js/sound.js?v=17"></script>
+<script src="js/avatar.js?v=17"></script>
+<script src="js/world.js?v=17"></script>
+<script src="js/quiz.js?v=17"></script>
+<script src="js/lesson.js?v=17"></script>
+<script src="js/ui.js?v=17"></script>
+<script src="js/main.js?v=17"></script>
+</body>
+</html>
