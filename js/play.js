@@ -20,17 +20,20 @@
     cv: [['像素孔雀魚', '🐟'], ['YOLO 飛魚', '🐠'], ['擴散魷魚', '🦑']],
     nlp: [['詞嵌入鯖魚', '🐟'], ['注意力鰻魚', '🐠'], ['BERT 藍鯨', '🐳']],
     llm: [['Token 小丑魚', '🐟'], ['RAG 石斑', '🐠'], ['Transformer 巨鯊', '🦈']],
+    agent: [['工具呼叫丁香魚', '🐟'], ['MCP 寄居蟹', '🦀'], ['多代理虎鯨', '🐳']],
     robot: [['PID 鯉魚', '🐟'], ['SLAM 章魚', '🐙'], ['PPO 海豚', '🐬']],
     tools: [['Bash 小蝦', '🦐'], ['API 魟魚', '🐠'], ['Docker 鯨鯊', '🐋']],
     ai: [['A* 海星魚', '🐟'], ['貝氏龍蝦', '🦞'], ['卡爾曼劍魚', '🐡']],
   };
   const fishId = (rid, k) => rid + '.' + k;
+  const spaced = (n) => (/[A-Za-z0-9]$/.test(n) ? n + ' ' : n);   // 「AI Agent 的島民」：英文結尾和中文之間留一個空格
   const NPCS = {
     ml: { name: '資料科學家 小林', look: { hair: 'side', hairColor: 1, skin: 1, outfit: 'lab', outfitColor: '#f4f1ea', hat: 'none', acc: 'glasses' }, line: '我的模型一直過擬合，先陪我把基本功練熟吧！' },
     dl: { name: '訓練師 阿哲', look: { hair: 'spiky', hairColor: 0, skin: 2, outfit: 'hoodie', outfitColor: '#f2914e', hat: 'none', acc: 'none' }, line: 'GPU 又在燒了……趁訓練的空檔，幫我個忙？' },
     cv: { name: '攝影師 Iris', look: { hair: 'bob', hairColor: 7, skin: 0, outfit: 'stripe', outfitColor: '#4fa6e0', hat: 'cap', acc: 'none' }, line: '鏡頭裡看到的，不一定是模型看到的。' },
     nlp: { name: '語言學家 小語', look: { hair: 'long', hairColor: 0, skin: 1, outfit: 'vest', outfitColor: '#9d82e0', hat: 'none', acc: 'scarf' }, line: '每個字都是一個向量，你也是。' },
     llm: { name: 'Prompt 工程師 Kai', look: { hair: 'short', hairColor: 8, skin: 3, outfit: 'hoodie', outfitColor: '#ea6a80', hat: 'none', acc: 'headphones' }, line: '我在等模型回覆，你先幫我跑個任務吧。' },
+    agent: { name: 'Agent 工程師 小艾', look: { hair: 'bob', hairColor: 3, skin: 2, outfit: 'tee', outfitColor: '#4a63d8', hat: 'none', acc: 'glasses' }, line: '我的 agent 又卡在工具呼叫的迴圈裡了，幫我一把吧。' },
     robot: { name: '機器人工程師 阿德', look: { hair: 'bald', hairColor: 0, skin: 4, outfit: 'vest', outfitColor: '#2fb5a5', hat: 'none', acc: 'backpack' }, line: '我的機器人又撞牆了，需要一點幫手。' },
     tools: { name: 'DevOps 小芸', look: { hair: 'pony', hairColor: 5, skin: 1, outfit: 'tee', outfitColor: '#d0a630', hat: 'beanie', acc: 'none' }, line: '部署前最後一關：先幫我把這件事搞定。' },
     ai: { name: '燈塔管理員 老陳', look: { hair: 'short', hairColor: 9, skin: 2, outfit: 'suit', outfitColor: '#5b6474', hat: 'straw', acc: 'none' }, line: '燈塔照亮的是航道，知識照亮的是答案。' },
@@ -521,7 +524,7 @@
       el('div', { class: 'modes' }, [
         el('button', { class: 'mode', type: 'button', onclick: () => memorySetup() }, [el('b', { text: '🃏 翻牌配對' }), el('span', { text: '把名詞和它的意思配成一對，步數越少越好。最佳：' + (p.memory.best ? p.memory.best + ' 步' : '還沒玩過') })]),
         el('button', { class: 'mode', type: 'button', onclick: () => quickStart() }, [el('b', { text: '⚡ 60 秒快問快答' }), el('span', { text: '是非題和單選題連續答，連對有加乘，答錯扣 3 秒。最高分：' + (p.quick.best || 0) })]),
-        el('button', { class: 'mode', type: 'button', onclick: basket }, [el('b', { text: '🎣 魚簍' }), el('span', { text: '到任何一座島的碼頭盡頭按 E 甩竿。已釣到 ' + Object.keys(p.fish).length + ' / 24 種' })]),
+        el('button', { class: 'mode', type: 'button', onclick: basket }, [el('b', { text: '🎣 魚簍' }), el('span', { text: '到任何一座島的碼頭盡頭按 E 甩竿。已釣到 ' + Object.keys(p.fish).length + ' / ' + Object.values(FISH).reduce((a, f) => a + f.length, 0) + ' 種' })]),
       ]),
     ]), { wide: true });
   }
@@ -697,7 +700,7 @@
     if (ev.kind === 'monster') {
       snd('monster');
       view.append(el('div', { class: 'eyebrow', text: '🌊 航行事件' }), el('h2', { text: '🐉 海怪擋住了去路！' }),
-        el('p', { class: 'hint', text: '牠說：「答對我的問題，才讓你過去。」（' + reg.name + '的題目）' }));
+        el('p', { class: 'hint', text: '牠說：「答對我的問題，才讓你過去。」（' + spaced(reg.name) + '的題目）' }));
       const host = el('div');
       view.appendChild(host);
       askQuestion(pickQ(ev.rid, MID), host, (correct) => {
@@ -831,7 +834,7 @@
     const face = el('img', { class: 'npc-face', alt: '' });
     const u = G.avatar.playerIcon(npc.look, 1); if (u) face.src = u;
     const body = el('div');
-    view.append(el('div', { class: 'npc-head' }, [face, el('div', {}, [el('div', { class: 'eyebrow', text: G.regions[rid].name + '的島民' }), el('h2', { text: npc.name })])]), body);
+    view.append(el('div', { class: 'npc-head' }, [face, el('div', {}, [el('div', { class: 'eyebrow', text: spaced(G.regions[rid].name) + '的島民' }), el('h2', { text: npc.name })])]), body);
     const foot = el('div', { class: 'qz-foot' });
     const q = st.cur;
     if (!q) {

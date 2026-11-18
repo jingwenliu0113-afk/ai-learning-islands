@@ -179,6 +179,18 @@
         lamp(g, 0, 0.53, 0, 0.028);
         break;
       }
+      case 'antenna': {           // 訊號塔：AI Agent
+        P(GEO.box, '#3b3f58', 0.28, 0.05, 0.28, 0, 0.025, 0);
+        P(GEO.box, '#f6efe2', 0.17, 0.15, 0.17, 0, 0.125, 0);
+        P(GEO.box, color, 0.19, 0.03, 0.19, 0, 0.215, 0);
+        P(GEO.cyl, '#56606e', 0.025, 0.3, 0.025, 0, 0.38, 0);
+        const head = new T.Group(); head.position.set(0, 0.5, 0); g.add(head);
+        part(head, GEO.dome, color, 0.1, 0.05, 0.1, 0.045, 0, 0).rotation.z = -1.1;
+        spinners.push({ o: head, v: 0.9 });
+        [[-0.1, 0.1], [0.1, 0.1], [0.1, -0.1]].forEach(([x, z]) => P(GEO.ball, tint(color, '#ffffff', 0.4), 0.03, 0.03, 0.03, x, 0.27, z));
+        lamp(g, 0, 0.56, 0, 0.03);
+        break;
+      }
       case 'beacon':              // 燈塔：AI 導論
         P(GEO.cyl, '#d9d2c4', 0.17, 0.05, 0.17, 0, 0.025, 0);
         P(GEO.cyl, '#f6efe2', 0.1, 0.34, 0.1, 0, 0.22, 0);
@@ -484,7 +496,7 @@
     camera.position.set(cam.tx + cam.dist * sp * Math.sin(cam.az), cam.dist * cp, cam.tz + cam.dist * sp * Math.cos(cam.az));
     camera.lookAt(cam.tx, 0.2, cam.tz);
   }
-  const MAX_DIST = 96;   // 鏡頭最遠距離（手機直式要拉遠一點才放得下整張圖）
+  const MAX_DIST = 125;  // 鏡頭最遠距離（手機直式要拉遠一點才放得下整張圖；九座島比較寬）
   function clampCam() {
     cam.dist = Math.min(MAX_DIST, Math.max(3.2, cam.dist));
     cam.pol = Math.min(1.32, Math.max(0.1, cam.pol));
@@ -503,7 +515,7 @@
     // 手機直式畫面比較窄：地圖轉 90 度，讓群島長的那一邊（東西向）順著畫面的直向
     const tall = W < H * 0.9;
     let hx = (bounds.x1 - bounds.x0) / 2 + 1.6, hz = (bounds.z1 - bounds.z0) / 2 + 1.6;
-    if (tall) [hx, hz] = [hz, hx];
+    if (tall) { [hx, hz] = [hz, hx]; hx += 2.6; }   // 直式：左右兩側的島名牌會超出六角格，多留一點寬度
     const pol = top ? 0.1 : 0.68;
     const t = Math.tan((camera.fov / 2) * Math.PI / 180);
     const aspect = Math.max(0.4, W / H);

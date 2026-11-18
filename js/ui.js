@@ -515,7 +515,7 @@
     modal(el('div', { class: 'build' }, [
       el('div', { class: 'eyebrow', text: '我的小島' }),
       el('h2', { text: '建造空地' }),
-      el('p', { class: 'hint', text: '每座島第一次答對一題會得到 1 個那個領域的素材。用素材在家旁邊的八塊空地蓋裝飾，每個三級（5、10、20 個素材）。' }),
+      el('p', { class: 'hint', text: '每座島第一次答對一題會得到 1 個那個領域的素材。用素材在家旁邊的 ' + Object.keys(G.regions).length + ' 塊空地蓋裝飾，每個三級（5、10、20 個素材）。' }),
       el('div', { class: 'brows' }, rows),
     ]), { wide: true });
   }

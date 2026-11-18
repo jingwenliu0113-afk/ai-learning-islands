@@ -1,4 +1,4 @@
-/* 3D 世界：九座島、地點、主角移動與碰撞、跟隨鏡頭、渡船、晝夜、雜草、蟲、場景標籤 */
+/* 3D 世界：十座島（我的小島加九座領域島）、地點、主角移動與碰撞、跟隨鏡頭、渡船、晝夜、雜草、蟲、場景標籤 */
 (function () {
   'use strict';
   const G = window.G;
@@ -133,6 +133,18 @@
         Pp(GEO.box, '#f6c64a', 0.2, 0.035, 0.04, 0.08, 0.49, 0);
         Pp(GEO.ball, '#e2574c', 0.035, 0.035, 0.035, 0.18, 0.46, 0);
         lamp(g, 0, 0.53, 0, 0.028);
+        break;
+      }
+      case 'antenna': {           // 訊號塔：AI Agent（會轉的雷達碟，代表持續感知與行動）
+        Pp(GEO.box, '#3b3f58', 0.28, 0.05, 0.28, 0, 0.025, 0);
+        Pp(GEO.box, '#f6efe2', 0.17, 0.15, 0.17, 0, 0.125, 0);
+        Pp(GEO.box, color, 0.19, 0.03, 0.19, 0, 0.215, 0);
+        Pp(GEO.cyl, '#56606e', 0.025, 0.3, 0.025, 0, 0.38, 0);
+        const head = new T.Group(); head.position.set(0, 0.5, 0); g.add(head);
+        part(head, GEO.dome, color, 0.1, 0.05, 0.1, 0.045, 0, 0).rotation.z = -1.1;
+        spinners.push({ o: head, v: 0.9 });
+        [[-0.1, 0.1], [0.1, 0.1], [0.1, -0.1]].forEach(([x, z]) => Pp(GEO.ball, tint(color, '#ffffff', 0.4), 0.03, 0.03, 0.03, x, 0.27, z));
+        lamp(g, 0, 0.56, 0, 0.03);
         break;
       }
       case 'beacon':
@@ -464,9 +476,10 @@
   }
 
   /* ---------- 我的小島 ---------- */
-  const HOME_SLOTS = [[-10, -3], [-9.5, -8], [-5, -11], [0.5, -12.3], [6, -11], [9.8, -6.6], [11, -1], [9, 4.5]];
+  // 每個領域在我的小島的建造空地（用領域 id 對應，新增領域時舊的裝飾不會換位置）
+  const HOME_SLOTS = { ml: [-10, -3], dl: [-9.5, -8], cv: [-5, -11], nlp: [0.5, -12.3], llm: [6, -11], robot: [9.8, -6.6], tools: [11, -1], ai: [9, 4.5], agent: [-11, 2.6] };
   function buildHome(isl) {
-    isl.homeSlots = Object.values(G.regions).map((reg, i) => ({ region: reg, x: HOME_SLOTS[i][0], z: HOME_SLOTS[i][1] }));
+    isl.homeSlots = Object.values(G.regions).filter((reg) => HOME_SLOTS[reg.id]).map((reg) => ({ region: reg, x: HOME_SLOTS[reg.id][0], z: HOME_SLOTS[reg.id][1] }));
     const plaza = new T.Mesh(GEO.cyl16, mat('#efe4cc'));
     plaza.scale.set(4.5, 0.08, 4.5); plaza.position.set(0, 0.04, 1.2); plaza.receiveShadow = true;
     scene.add(plaza);

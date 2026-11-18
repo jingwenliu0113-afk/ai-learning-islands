@@ -20,6 +20,7 @@
     cv: { name: '鏡片', icon: '🔍', deco: '望遠鏡' },
     nlp: { name: '書頁', icon: '📜', deco: '小圖書館' },
     llm: { name: '水晶', icon: '💎', deco: '水晶柱' },
+    agent: { name: '晶片', icon: '🔌', deco: '訊號塔' },
     robot: { name: '齒輪', icon: '⚙️', deco: '齒輪塔' },
     tools: { name: '螺絲', icon: '🔩', deco: '工作坊' },
     ai: { name: '燈油', icon: '🪔', deco: '小燈塔' },
