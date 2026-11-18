@@ -648,7 +648,8 @@
     });
     // 互動提示
     const blocking = G.ui && G.ui.isBlocking && G.ui.isBlocking();
-    if (nearest && !sail && !blocking) {
+    if (nearest && !sail && !blocking && !api.hold) {
+      promptEl.className = 'prompt' + (nearest.cls ? ' ' + nearest.cls : '');   // 例如釣魚時魚上鉤會閃爍
       promptEl.textContent = '';
       promptEl.appendChild(G.util.el('kbd', { text: 'E' }));
       promptEl.appendChild(document.createTextNode(nearest.label));
@@ -687,7 +688,7 @@
     if (!isl || sail) return;
     const blocking = G.ui && G.ui.isBlocking && G.ui.isBlocking();
     let mx = 0, mz = 0;
-    if (!blocking) {
+    if (!blocking && !api.hold) {   // hold：釣魚答題時站著不動
       if (keys.has('KeyW') || keys.has('ArrowUp')) mz -= 1;
       if (keys.has('KeyS') || keys.has('ArrowDown')) mz += 1;
       if (keys.has('KeyA') || keys.has('ArrowLeft')) mx -= 1;
@@ -869,7 +870,7 @@
         keys.add(e.code);
         if (e.code.startsWith('Arrow')) e.preventDefault();
       }
-      if ((e.code === 'KeyE' || e.code === 'Space') && !(G.ui.isBlocking && G.ui.isBlocking())) { e.preventDefault(); interact(); }
+      if ((e.code === 'KeyE' || e.code === 'Space') && !api.hold && !(G.ui.isBlocking && G.ui.isBlocking())) { e.preventDefault(); interact(); }
     });
     window.addEventListener('keyup', (e) => keys.delete(e.code));
     window.addEventListener('blur', () => { keys.clear(); joy.on = false; joy.x = joy.y = 0; });
@@ -1212,6 +1213,14 @@
     addInteract(id, it) { islandById[id].interact.push(it); return it; },
     removeInteract(id, it) { const a = islandById[id].interact, i = a.indexOf(it); if (i >= 0) a.splice(i, 1); },
     onTick(fn) { tickers.push(fn); },
+    hold: false,   // true 時主角不能走動、不顯示互動提示（釣魚答題時）
+    /** 鏡頭看向某處：{x, z, y, dist, pol, az}；releaseFocus() 回到跟著主角 */
+    focus(f) { camFocus = f; },
+    face(a) { P.facing = a; player.group.rotation.y = a; },
+    playerArm(i) { return player.arm(i); },
+    playerObj() { return player.group; },
+    /** 海面在 (x, z) 的高度（和海浪動畫用同一個公式） */
+    seaY(x, z) { return water.position.y + Math.sin(x * 0.18 + clock * 0.9) * 0.12 + Math.cos(z * 0.2 + clock * 0.7) * 0.12; },
     boatPos() { return sail ? { x: boat.position.x, z: boat.position.z, ry: boat.rotation.y } : null; },
     /** 在島上找一塊空地：不壓到路、廣場、碼頭、樹和建築。seed 決定位置（同一個 seed 每次都一樣） */
     freeSpot(id, seed, pad) {

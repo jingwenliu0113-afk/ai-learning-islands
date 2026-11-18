@@ -213,97 +213,302 @@
     return g;
   }
 
-  /* ---------- 釣魚 ---------- */
+  /* ---------- 釣魚：站在碼頭盡頭直接甩竿（3D 動畫），魚上鉤時題目出現在畫面下方 ---------- */
   function rollRarity() { const r = Math.random(); return r < 0.65 ? 0 : r < 0.93 ? 1 : 2; }
-  function fishing(isl) {
-    const rid0 = isl.kind === 'region' ? isl.region.id : null;
-    let stopQ = null;
-    const view = el('div', { class: 'pl pl-fishing' });
-    const render = (phase, data) => {
-      if (stopQ) { stopQ(); stopQ = null; }
-      view.innerHTML = '';
-      view.appendChild(el('div', { class: 'eyebrow', text: '🎣 碼頭釣魚 · ' + isl.name }));
-      view.appendChild(el('h2', { text: phase === 'question' ? '魚上鉤了！答對就釣起來' : '釣魚' }));
-      const pond = el('div', { class: 'pond' + (phase === 'wait' ? ' wait' : '') + (phase === 'bite' ? ' bite' : '') }, [
-        el('span', { class: 'bobber', text: '🔴' }), el('span', { class: 'ripple' }),
+  const FISH_LIMIT = [20, 30, 45];               // 答題秒數：普通、稀有、傳說
+  const FISH_LOOK = [['#8fb8d8', 0.85], ['#f2b84b', 1.05], ['#b06ee8', 1.35]];
+  const BITE_WINDOW = 1.7;                       // 浮標沉下去後幾秒內要拉竿
+  let F = null;      // 正在釣魚的狀態（沒在釣就是 null）
+  let gear = null;   // 釣竿、浮標、釣線、魚、漣漪、水花（第一次釣魚才做）
+  let hud = null;    // 畫面下方的題目區
+  const lerp = (a, b, u) => a + (b - a) * u;
+  const ease = (u) => u * u * (3 - 2 * u);
+
+  function makeGear() {
+    const T = K.T, P = K.part;
+    const rod = group();                                                     // 以手為軸心，竿子沿 +y 長出去
+    P(rod, K.GEO.cyl, '#2b2522', 0.035, 0.26, 0.035, 0, 0.05, 0);           // 握把
+    P(rod, K.GEO.cyl, '#c9c3b5', 0.05, 0.05, 0.05, 0.05, 0.22, 0, { metalness: 0.4, roughness: 0.4 });   // 捲線器
+    P(rod, K.GEO.cyl, '#7a5638', 0.016, 1.75, 0.016, 0, 1.0, 0);            // 竿身
+    const tip = new T.Object3D(); tip.position.set(0, 1.88, 0); rod.add(tip);
+    const bob = group();                                                     // 浮標：上紅下白
+    P(bob, K.GEO.ball, '#e74c3c', 0.1, 0.08, 0.1, 0, 0.03, 0);
+    P(bob, K.GEO.ball, '#ffffff', 0.1, 0.06, 0.1, 0, -0.03, 0);
+    P(bob, K.GEO.cyl, '#2b2522', 0.01, 0.14, 0.01, 0, 0.12, 0);
+    const N = 20;                                                            // 釣線：20 個點，中間往下垂
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.BufferAttribute(new Float32Array(N * 3), 3));
+    const line = new T.Line(geo, new T.LineBasicMaterial({ color: '#fbf7ec', transparent: true, opacity: 0.9 }));
+    line.frustumCulled = false;
+    const fish = group();
+    const ripples = [0, 1, 2].map(() => {
+      const m = new T.Mesh(new T.RingGeometry(0.14, 0.2, 28).rotateX(-Math.PI / 2), new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, depthWrite: false }));
+      m.userData.t = 9;
+      return m;
+    });
+    const dropMat = K.mat('#ffffff', { transparent: true, opacity: 0.9 });
+    const drops = Array.from({ length: 14 }, () => { const m = new T.Mesh(K.GEO.ball, dropMat); m.scale.setScalar(0.045); m.userData = { on: false }; return m; });
+    [bob, line, fish].concat(ripples, drops).forEach((o) => { o.visible = false; G.world.addProp(o); });
+    return { rod, tip, bob, line, N, pos: geo.attributes.position, fish, ripples, drops, rippleNext: 0, tipW: new T.Vector3() };
+  }
+  /** 依稀有度做一條魚（沿 +x 是頭） */
+  function dressFish(rarity) {
+    const f = gear.fish, P = K.part;
+    while (f.children.length) f.remove(f.children[0]);
+    const [c, s] = FISH_LOOK[rarity];
+    const glow = rarity === 2 ? { emissive: '#8e44ad', emissiveIntensity: 0.35 } : null;
+    P(f, K.GEO.ball, c, 0.3, 0.15, 0.1, 0, 0, 0, glow);
+    P(f, K.GEO.cone6, K.tint(c, '#2b2522', 0.25), 0.11, 0.18, 0.04, -0.33, 0, 0, glow).rotation.z = Math.PI / 2;
+    P(f, K.GEO.cone6, K.tint(c, '#2b2522', 0.2), 0.05, 0.12, 0.02, 0, 0.15, 0).rotation.z = -0.4;
+    [-1, 1].forEach((sd) => { P(f, K.GEO.ball, '#ffffff', 0.035, 0.035, 0.02, 0.18, 0.04, sd * 0.08); P(f, K.GEO.ball, '#1d1d1d', 0.018, 0.018, 0.01, 0.195, 0.04, sd * 0.095); });
+    f.scale.setScalar(s);
+  }
+  function splash(x, z, n, power) {
+    const y = G.world.seaY(x, z);
+    let k = 0;
+    gear.drops.forEach((d) => {
+      if (k >= n || d.userData.on) return;
+      k++;
+      const a = Math.random() * Math.PI * 2, sp = (0.6 + Math.random() * 1.2) * (power || 1);
+      d.userData = { on: true, vx: Math.cos(a) * sp, vz: Math.sin(a) * sp, vy: (2 + Math.random() * 2) * (power || 1) };
+      d.position.set(x, y + 0.05, z); d.visible = true;
+    });
+    const r = gear.ripples[gear.rippleNext++ % gear.ripples.length];
+    r.userData.t = 0; r.position.set(x, y + 0.02, z); r.visible = true;
+  }
+  /** 釣線：從竿尖垂到浮標（sag 越大垂越多） */
+  function drawLine(a, b, sag) {
+    const p = gear.pos;
+    for (let i = 0; i < gear.N; i++) {
+      const u = i / (gear.N - 1);
+      p.setXYZ(i, lerp(a.x, b.x, u), lerp(a.y, b.y, u) - sag * 4 * u * (1 - u), lerp(a.z, b.z, u));
+    }
+    p.needsUpdate = true;
+    gear.line.visible = true;
+  }
+
+  /* 互動提示（頭上的按鈕）會依釣魚的階段變 */
+  function fishLabel(isl) {
+    if (!F || F.isl !== isl) return '🎣 釣魚';
+    if (F.phase === 'bite') return '❗ 拉竿！';
+    if (F.phase === 'cast' || F.phase === 'wait') return '等魚上鉤…（收竿）';
+    return '🎣 再甩一竿';
+  }
+  function fishAct(isl) {
+    if (!F) return startFishing(isl);
+    if (F.isl !== isl) return;
+    if (F.phase === 'bite') return hook();
+    if (F.phase === 'cast' || F.phase === 'wait') return stopFishing('收竿了。');
+    if (F.phase === 'reel' || F.phase === 'escape') return recast();
+  }
+  function startFishing(isl) {
+    if (G.world.sailing) return;
+    if (!gear) gear = makeGear();
+    const pp = G.world.playerPos(), d = isl.dock;
+    const along = isl.rad(isl.dockAng) + 10.4;                                  // 碼頭盡頭再往外 4 公尺，偏離停船的那一側
+    const tx = isl.cx + d.dx * along - d.dz * 1.3, tz = isl.cz + d.dz * along + d.dx * 1.3;
+    const face = Math.atan2(tx - pp.x, tz - pp.z);
+    G.world.stop();
+    G.world.face(face);
+    F = { isl, rid0: isl.kind === 'region' ? isl.region.id : null, anchor: { x: pp.x, z: pp.z }, face, target: { x: tx, z: tz }, phase: 'cast', t: 0 };
+    F.cam = { x: lerp(pp.x, tx, 0.45), z: lerp(pp.z, tz, 0.45), face };
+    frameCam(false);
+    const p = ps();
+    if (!p.fishTip) { p.fishTip = 1; store.save(); toast('浮標沉下去時，按 E（或點頭上的按鈕）拉竿'); }
+    snd('click');
+  }
+  /** 鏡頭從斜後方看（停船的另一側，才不會被船擋住）。手機直式畫面比較窄，改成從正後方看，主角和浮標上下排。
+      題目出現時看低一點，主角和浮標會跑到畫面上半部，不被題目擋住 */
+  function frameCam(up) {
+    const tall = window.innerWidth < window.innerHeight * 0.9, c = F.cam;
+    G.world.focus({
+      x: c.x, z: c.z, pol: tall ? 0.95 : 1.02, az: c.face + Math.PI + (tall ? 0.3 : 0.8),
+      dist: (tall ? 13 : 10) + (up ? (tall ? 3 : 1) : 0), y: up ? (tall ? -2.6 : -1.5) : 0.7,
+    });
+  }
+  function recast() {
+    hideHud();
+    frameCam(false);
+    gear.fish.visible = false;
+    F.phase = 'cast'; F.t = 0; F.q = null;
+    snd('click');
+  }
+  function stopFishing(msg) {
+    if (!F) return;
+    if (F.stopQ) F.stopQ();
+    G.quiz.detachKeys();
+    hideHud();
+    G.world.hold = false;
+    G.world.releaseFocus();
+    if (gear) {
+      if (gear.rod.parent) gear.rod.parent.remove(gear.rod);
+      [gear.bob, gear.line, gear.fish].forEach((o) => { o.visible = false; });
+    }
+    F = null;
+    if (msg) toast(msg);
+  }
+  function setPhase(ph) { F.phase = ph; F.t = 0; }
+  function newWait() { F.waitFor = 1.8 + Math.random() * 3.2; F.nibble = 0.6 + Math.random() * (F.waitFor - 0.8); }
+  function hook() {
+    F.rarity = rollRarity();
+    F.rid = F.rid0 || Object.keys(FISH)[Math.floor(Math.random() * 8)];
+    F.q = pickQ(F.rid, [EASY, MID, HARD][F.rarity]);
+    setPhase('fight');
+    G.world.hold = true;
+    frameCam(true);
+    snd('splash');
+    const host = el('div', { class: 'fh-host' });
+    showHud([
+      el('div', { class: 'fh-top' }, [el('b', { text: '🐟 魚上鉤了！' }), el('span', { text: '是' + RARITY[F.rarity] + '的魚，' + FISH_LIMIT[F.rarity] + ' 秒內答對就釣起來' })]),
+      host,
+    ]);
+    F.stopQ = askQuestion(F.q, host, (correct) => answered(correct, host), FISH_LIMIT[F.rarity]);
+  }
+  function answered(correct, host) {
+    F.stopQ = null;
+    G.world.hold = false;
+    let card;
+    if (correct) {
+      const [name, emo] = FISH[F.rid][F.rarity];
+      const p = ps();
+      const id = fishId(F.rid, F.rarity);
+      const isNew = !p.fish[id];
+      p.fish[id] = (p.fish[id] || 0) + 1;
+      const coins = bonus([2, 6, 15][F.rarity]);
+      questProgress(F.rid0 || F.rid, 'fish');
+      const hat = F.rarity === 2 && unlock('hat', 'fisher', '釣到傳說魚');
+      store.save();
+      snd('catch');
+      dressFish(F.rarity);
+      card = el('div', { class: 'pl-catch r' + F.rarity }, [
+        el('span', { class: 'fish-emo', text: emo }),
+        el('div', {}, [el('b', { text: (isNew ? '新魚種！' : '釣到了！') + name }), el('span', { text: RARITY[F.rarity] + (coins ? '　+' + coins + ' 金幣' : '') + '　魚簍裡共 ' + p.fish[id] + ' 條' + (hat ? '　✨ 解鎖漁夫帽！' : '') })]),
       ]);
-      if (phase !== 'question') view.appendChild(pond);
-      const foot = el('div', { class: 'qz-foot' });
-      if (phase === 'ready') {
-        view.appendChild(el('p', { class: 'hint', text: rid0 ? '這裡釣得到「' + isl.name + '」的魚。浮標一沉就按「拉竿」，然後在時間內答對題目。越稀有的魚，題目越難、時間越長。' : '我的小島的碼頭什麼魚都有。浮標一沉就按「拉竿」，然後在時間內答對題目。' }));
-        foot.append(el('button', { class: 'btn', type: 'button', text: '看魚簍', onclick: () => render('basket') }), el('button', { class: 'btn primary', type: 'button', text: '🎣 拋竿', onclick: cast }));
-      } else if (phase === 'wait') {
-        view.appendChild(el('p', { class: 'hint', text: '靜靜等待……' }));
-      } else if (phase === 'bite') {
-        view.appendChild(el('p', { class: 'hint strong', text: '浮標沉下去了！快拉！' }));
-        foot.append(el('button', { class: 'btn primary big', type: 'button', text: '拉竿！', onclick: () => { clearTimeout(data.miss); hook(); } }));
-      } else if (phase === 'miss') {
-        view.appendChild(el('p', { class: 'hint', text: '太慢了，魚跑掉了。再試一次？' }));
-        foot.append(el('button', { class: 'btn', type: 'button', text: '收竿', onclick: G.ui.closeModal }), el('button', { class: 'btn primary', type: 'button', text: '再拋一次', onclick: cast }));
-      } else if (phase === 'question') {
-        const { q, rarity, rid } = data;
-        view.appendChild(el('p', { class: 'hint', text: '是' + RARITY[rarity] + '的魚！' + [20, 30, 45][rarity] + ' 秒內答對就釣起來。' }));
-        const host = el('div');
-        view.appendChild(host);
-        stopQ = askQuestion(q, host, (correct) => {
-          const after = el('div', { class: 'qz-foot' });
-          if (correct) {
-            const [name, emo] = FISH[rid][rarity];
-            const p = ps();
-            const id = fishId(rid, rarity);
-            const isNew = !p.fish[id];
-            p.fish[id] = (p.fish[id] || 0) + 1;
-            const coins = bonus([2, 6, 15][rarity]);
-            questProgress(rid0 || rid, 'fish');
-            let extra = null;
-            if (rarity === 2 && unlock('hat', 'fisher', '釣到傳說魚')) extra = el('div', { class: 'pl-unlock', text: '✨ 稀有裝扮解鎖：漁夫帽！到「打扮」穿上它。' });
-            store.save();
-            snd('catch');
-            host.prepend(el('div', { class: 'pl-catch r' + rarity }, [
-              el('span', { class: 'fish-emo', text: emo }),
-              el('div', {}, [el('b', { text: (isNew ? '新魚種！' : '') + name }), el('span', { text: RARITY[rarity] + (coins ? '　+' + coins + ' 金幣' : '') + '　魚簍裡共 ' + p.fish[id] + ' 條' })]),
-            ]));
-            if (extra) host.prepend(extra);
-          } else {
-            host.prepend(el('div', { class: 'pl-catch miss' }, [el('span', { class: 'fish-emo', text: '💨' }), el('div', {}, [el('b', { text: '魚跑掉了' }), el('span', { text: '看看解析，下次就釣得到。' })])]));
-          }
-          after.append(el('button', { class: 'btn', type: 'button', text: '收竿', onclick: G.ui.closeModal }), el('button', { class: 'btn primary', type: 'button', text: '再拋一次', onclick: cast }));
-          host.appendChild(after);
-          after.lastChild.focus({ preventScroll: true });
-        }, [20, 30, 45][rarity]);
-      } else if (phase === 'basket') {
-        const p = ps();
-        const total = Object.keys(FISH).length * 3, got = Object.keys(p.fish).length;
-        view.appendChild(el('p', { class: 'hint', text: '魚簍：' + got + ' / ' + total + ' 種。每座島有普通、稀有、傳說三種魚；釣到任何一條傳說魚可以拿到漁夫帽。' }));
-        view.appendChild(el('div', { class: 'basket' }, Object.keys(FISH).map((rid) => el('div', { class: 'bk-row' }, [
-          el('span', { class: 'bk-isl', style: '--c:' + G.regions[rid].color, text: G.regions[rid].name }),
-        ].concat(FISH[rid].map(([n, e], k) => {
-          const c = p.fish[fishId(rid, k)] || 0;
-          return el('span', { class: 'bk-fish r' + k + (c ? '' : ' none'), title: c ? n + '（' + RARITY[k] + '）× ' + c : '還沒釣到' }, [el('i', { text: c ? e : '❔' }), el('em', { text: c ? n : '???' })]);
-        }))))));
-        foot.append(el('button', { class: 'btn primary', type: 'button', text: '回去釣魚', onclick: () => render('ready') }));
+      setPhase('reel');
+    } else {
+      card = el('div', { class: 'pl-catch miss' }, [el('span', { class: 'fish-emo', text: '💨' }), el('div', {}, [el('b', { text: '魚跑掉了' }), el('span', { text: '看看解析，下次就釣得到。' })])]);
+      splash(gear.bob.position.x, gear.bob.position.z, 10, 1.2);
+      setPhase('escape');
+    }
+    host.prepend(card);
+    hud.appendChild(el('div', { class: 'fh-foot' }, [
+      el('button', { class: 'btn', type: 'button', text: '收竿', onclick: () => stopFishing() }),
+      el('button', { class: 'btn primary', type: 'button', html: '<kbd>E</kbd> 再甩一竿', onclick: recast }),
+    ]));
+    hud.scrollTop = 0;
+  }
+  function showHud(children) {
+    if (!hud) { hud = el('div', { class: 'fish-hud', role: 'region', 'aria-label': '釣魚' }); document.body.appendChild(hud); }
+    hud.innerHTML = '';
+    children.forEach((c) => hud.appendChild(c));
+    hud.hidden = false;
+    hud.scrollTop = 0;
+    document.body.classList.add('fish-q');   // 題目區出現時藏起下方的提示列和搖桿
+  }
+  function hideHud() { document.body.classList.remove('fish-q'); if (hud) { hud.hidden = true; hud.innerHTML = ''; } }
+
+  /** 每一格畫面：手臂、釣竿、浮標、釣線、魚、水花 */
+  function fishTick(dt, clock) {
+    if (!gear) return;
+    gear.drops.forEach((d) => {
+      const u = d.userData; if (!u.on) return;
+      u.vy -= 9 * dt;
+      d.position.x += u.vx * dt; d.position.z += u.vz * dt; d.position.y += u.vy * dt;
+      if (d.position.y < G.world.seaY(d.position.x, d.position.z) - 0.05) { u.on = false; d.visible = false; }
+    });
+    gear.ripples.forEach((r) => {
+      if (r.userData.t > 1.2) { r.visible = false; return; }
+      r.userData.t += dt;
+      r.scale.setScalar(1 + r.userData.t * 4);
+      r.material.opacity = Math.max(0, 0.7 * (1 - r.userData.t / 1.2));
+    });
+    if (!F) return;
+    // 離開就收竿：走開、坐船、換島；答題時打開選單也收竿（題目不算）。其他時候打開視窗（例如升級）只是暫停
+    const pp = G.world.playerPos();
+    if (G.world.sailing || G.world.island !== F.isl) { stopFishing(); return; }
+    if (G.ui.isBlocking()) { if (F.phase === 'fight') stopFishing(); return; }
+    if (!G.world.hold && Math.hypot(pp.x - F.anchor.x, pp.z - F.anchor.z) > 0.3) { stopFishing(); return; }
+    F.t += dt;
+    const arm = G.world.playerArm(0);
+    if (!arm) return;
+    if (gear.rod.parent !== arm) { arm.add(gear.rod); gear.rod.position.set(0, -0.33, 0.02); }
+    let th = -0.75, phi = 1.0, sag = 0.35;   // th：手臂往前抬的角度；phi：竿子往前倒的角度（0 是直立）
+    const T = F.target, sea = G.world.seaY(T.x, T.z);
+    const bob = gear.bob;
+    let end = null;
+    if (F.phase === 'cast') {
+      const t = F.t;
+      if (t < 0.38) { const u = ease(t / 0.38); th = lerp(-0.75, -2.7, u); phi = lerp(1.0, -0.55, u); }                 // 往後舉
+      else if (t < 0.6) { const u = (t - 0.38) / 0.22; th = lerp(-2.7, -1.3, u); phi = lerp(-0.55, 1.3, u); }          // 往前甩
+      else { const u = ease(Math.min(1, (t - 0.6) / 0.45)); th = lerp(-1.3, -0.75, u); phi = lerp(1.3, 1.0, u); }
+      arm.rotation.x = th; gear.rod.rotation.x = phi - th;
+      gear.tip.getWorldPosition(gear.tipW);
+      if (t < 0.55) { bob.position.copy(gear.tipW); bob.position.y -= 0.25; F.rel = null; }
+      else {
+        if (!F.rel) F.rel = gear.tipW.clone();
+        const u = Math.min(1, (t - 0.55) / 0.8);
+        bob.position.set(lerp(F.rel.x, T.x, u), lerp(F.rel.y, sea + 0.04, u) + 2.4 * 4 * u * (1 - u), lerp(F.rel.z, T.z, u));
+        sag = 0.05;
+        if (u >= 1) { splash(T.x, T.z, 8, 0.8); snd('splash'); setPhase('wait'); newWait(); }
       }
-      view.appendChild(foot);
-    };
-    function cast() {
-      snd('click');
-      render('wait');
-      const wait = 1100 + Math.random() * 2200;
-      setTimeout(() => {
-        if (!view.isConnected) return;
-        snd('splash');
-        const miss = setTimeout(() => { if (view.isConnected && view.querySelector('.pond.bite')) render('miss'); }, 1600);
-        render('bite', { miss });
-      }, wait);
+      bob.visible = true; end = bob.position;
+    } else if (F.phase === 'wait' || F.phase === 'escape') {
+      let dip = 0;
+      if (F.phase === 'wait') {
+        if (F.t > F.nibble && F.t < F.nibble + 0.25) dip = 0.07 * Math.sin((F.t - F.nibble) / 0.25 * Math.PI);   // 魚在試探
+        if (F.t > F.waitFor) { setPhase('bite'); splash(T.x, T.z, 6, 0.7); snd('splash'); }
+      } else phi = lerp(1.25, 1.0, Math.min(1, F.t / 0.5));
+      bob.position.set(T.x, sea + 0.04 - dip + Math.sin(clock * 2.2) * 0.015, T.z);
+      bob.visible = true; end = bob.position;
+    } else if (F.phase === 'bite') {
+      phi = 1.0 + Math.sin(clock * 30) * 0.03;
+      bob.position.set(T.x + Math.sin(clock * 37) * 0.04, sea - 0.16 + Math.sin(clock * 25) * 0.03, T.z + Math.cos(clock * 31) * 0.04);
+      if ((F.splashT = (F.splashT || 0) + dt) > 0.45) { F.splashT = 0; splash(T.x, T.z, 3, 0.5); }
+      sag = 0.12;
+      if (F.t > BITE_WINDOW) { toast('太慢了，魚跑掉了。再等一下吧'); splash(T.x, T.z, 4, 0.6); setPhase('wait'); newWait(); }
+      bob.visible = true; end = bob.position;
+    } else if (F.phase === 'fight') {
+      th = -1.05 + Math.sin(clock * 9) * 0.07; phi = 1.3 + Math.sin(clock * 11) * 0.12;
+      bob.position.set(T.x + Math.sin(clock * 4.3) * 0.35, sea - 0.05 + Math.sin(clock * 13) * 0.05, T.z + Math.cos(clock * 3.7) * 0.35);
+      if ((F.splashT = (F.splashT || 0) + dt) > 0.6) { F.splashT = 0; splash(bob.position.x, bob.position.z, 3, 0.6); }
+      sag = 0.0;
+      bob.visible = true; end = bob.position;
+    } else if (F.phase === 'reel') {
+      const u = ease(Math.min(1, F.t / 0.9));
+      th = lerp(-1.05, -1.6, u); phi = lerp(1.3, 0.8, u);
+      arm.rotation.x = th; gear.rod.rotation.x = phi - th;
+      gear.tip.getWorldPosition(gear.tipW);
+      const hang = { x: gear.tipW.x, y: gear.tipW.y - 0.65, z: gear.tipW.z };
+      const f = gear.fish;
+      f.visible = true;
+      f.position.set(lerp(T.x, hang.x, u), lerp(sea, hang.y, u) + 1.6 * 4 * u * (1 - u), lerp(T.z, hang.z, u));
+      f.rotation.set(0, F.face + Math.PI / 2 + Math.sin(clock * 9) * 0.5, u * Math.PI / 2);   // 被拉起來後頭朝上掛著、尾巴擺動
+      if (F.t < 0.1) splash(T.x, T.z, 10, 1.3);
+      bob.visible = false;
+      end = { x: f.position.x, y: f.position.y + 0.3 * f.scale.x, z: f.position.z };
+      sag = 0;
     }
-    function hook() {
-      const rarity = rollRarity();
-      const rid = rid0 || Object.keys(FISH)[Math.floor(Math.random() * 8)];
-      const q = pickQ(rid, [EASY, MID, HARD][rarity]);
-      render('question', { q, rarity, rid });
-    }
-    G.ui.modal(view, { wide: true, onLeave: () => { if (stopQ) stopQ(); } });
-    render('ready');
+    arm.rotation.x = th; arm.rotation.z = 0.12;
+    gear.rod.rotation.x = phi - th;
+    gear.tip.getWorldPosition(gear.tipW);
+    if (end) drawLine(gear.tipW, end, sag * Math.min(1, gear.tipW.distanceTo(end) / 5));
+  }
+  /** 魚簍（在遊戲機台裡看） */
+  function basket() {
+    const p = ps();
+    const total = Object.keys(FISH).length * 3, got = Object.keys(p.fish).length;
+    G.ui.modal(el('div', { class: 'pl' }, [
+      el('div', { class: 'eyebrow', text: '🎣 魚簍' }),
+      el('h2', { text: got + ' / ' + total + ' 種' }),
+      el('p', { class: 'hint', text: '走到任何一座島的碼頭盡頭，按 E（或點頭上的按鈕）甩竿；浮標沉下去時再按一次拉竿，答對題目就釣起來。每座島有普通、稀有、傳說三種魚；釣到傳說魚可以拿到漁夫帽。' }),
+      el('div', { class: 'basket' }, Object.keys(FISH).map((rid) => el('div', { class: 'bk-row' }, [
+        el('span', { class: 'bk-isl', style: '--c:' + G.regions[rid].color, text: G.regions[rid].name }),
+      ].concat(FISH[rid].map(([n, e], k) => {
+        const c = p.fish[fishId(rid, k)] || 0;
+        return el('span', { class: 'bk-fish r' + k + (c ? '' : ' none'), title: c ? n + '（' + RARITY[k] + '）× ' + c : '還沒釣到' }, [el('i', { text: c ? e : '❔' }), el('em', { text: c ? n : '???' })]);
+      }))))),
+      el('div', { class: 'qz-foot' }, [el('button', { class: 'btn primary', type: 'button', text: '回到遊戲機台', onclick: arcade })]),
+    ]), { wide: true });
   }
 
   /* ---------- 遊戲機台：翻牌配對 ---------- */
@@ -316,7 +521,7 @@
       el('div', { class: 'modes' }, [
         el('button', { class: 'mode', type: 'button', onclick: () => memorySetup() }, [el('b', { text: '🃏 翻牌配對' }), el('span', { text: '把名詞和它的意思配成一對，步數越少越好。最佳：' + (p.memory.best ? p.memory.best + ' 步' : '還沒玩過') })]),
         el('button', { class: 'mode', type: 'button', onclick: () => quickStart() }, [el('b', { text: '⚡ 60 秒快問快答' }), el('span', { text: '是非題和單選題連續答，連對有加乘，答錯扣 3 秒。最高分：' + (p.quick.best || 0) })]),
-        el('button', { class: 'mode', type: 'button', onclick: () => { G.ui.closeModal(); toast('走到任何一座島的碼頭盡頭，按 E 或點提示就能釣魚'); } }, [el('b', { text: '🎣 釣魚' }), el('span', { text: '到任何一座島的碼頭盡頭。魚簍：' + Object.keys(p.fish).length + ' / 24 種' })]),
+        el('button', { class: 'mode', type: 'button', onclick: basket }, [el('b', { text: '🎣 魚簍' }), el('span', { text: '到任何一座島的碼頭盡頭按 E 甩竿。已釣到 ' + Object.keys(p.fish).length + ' / 24 種' })]),
       ]),
     ]), { wide: true });
   }
@@ -696,7 +901,7 @@
       const prop = makeFishingProp();
       prop.position.set(x - d.dz * 0.75, 0.06, z + d.dx * 0.75);
       G.world.addProp(prop);
-      G.world.addInteract(isl.id, { x, z, r: 1.7, label: '🎣 釣魚', act: () => fishing(isl) });
+      G.world.addInteract(isl.id, { x, z, r: 1.7, get label() { return fishLabel(isl); }, get cls() { return F && F.isl === isl && F.phase === 'bite' ? 'alert' : ''; }, act: () => fishAct(isl) });
     });
     // 我的小島：遊戲機台
     const spot = G.world.freeSpot('home', 4242, 1.8);
@@ -715,6 +920,7 @@
       if (res.bugCaught) questProgress(rid, 'bug');
     };
     let dayCheck = 0;
+    G.world.onTick(fishTick);
     G.world.onTick((dt, clock) => {
       Object.values(chests).forEach((c) => {
         const u = c.obj.userData;
@@ -736,7 +942,8 @@
   }
 
   G.play = {
-    init, rollSeaEvent, seaEvent, fishing, arcade, memory, quickStart, talk,
+    init, rollSeaEvent, seaEvent, arcade, basket, memory, quickStart, talk,
+    fishing: { start: (id) => startFishing(G.world.islands.find((i) => i.id === id) || G.world.island), stop: stopFishing, get state() { return F ? { phase: F.phase, t: +F.t.toFixed(2), isl: F.isl.id, waitFor: F.waitFor, rarity: F.rarity, q: F.q ? F.q.id : null } : null; }, act: () => F && fishAct(F.isl) },   // 測試用
     stats() { const p = ps(); return { fish: Object.keys(p.fish).length, fishTotal: 24, chests: p.chests, quests: p.done, monsters: p.monsters, quickBest: p.quick.best, memoryBest: p.memory.best }; },
     debug() { return { chests: Object.keys(chests).map((r) => ({ r, open: chests[r].open, x: +chests[r].obj.position.x.toFixed(1), z: +chests[r].obj.position.z.toFixed(1) })), npcs: Object.keys(npcs) }; },   // 測試用
   };

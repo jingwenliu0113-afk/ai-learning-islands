@@ -127,6 +127,7 @@
         body.position.y = moving ? Math.abs(Math.sin(ph)) * 0.05 : Math.sin(ph) * 0.012;
       },
       wave(t) { if (rig.arms) { rig.arms[1].rotation.z = -2.4 + Math.sin(t * 10) * 0.35; rig.arms[1].rotation.x = 0; } },
+      arm(i) { return rig.arms ? rig.arms[i] : null; },   // 釣魚時把釣竿接在手上（換裝會重建手臂，所以每次都重新拿）
     };
   }
 
