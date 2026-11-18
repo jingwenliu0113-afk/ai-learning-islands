@@ -10,7 +10,6 @@
   let drawerTab = 'index', query = '';
   const openRegions = new Set();
   let faceKey = '';
-  let headStep = null;     // 頭的大小目前在第幾級（每 0.1 倍一級），長大時跳提示
 
   /* ---------- 對話框與提示 ---------- */
   function modal(node, opts) {
@@ -56,12 +55,9 @@
     $('hud-xp').textContent = lv.into + ' / ' + lv.need + ' XP';
     $('hud-coin').textContent = st.coins;
     $('hud-solved').textContent = tt.solved + ' / ' + tt.questions;
-    // 學越多頭越大：每次答對都重算；每長大 0.1 倍跳一次提示
+    // 學越多頭越大：每次答對都重算（全部答對是 2.5 倍）
     const hs = store.headScale(tt.solved);
     G.world.setHead(hs);
-    const step = Math.floor((hs - 1) / 0.1 + 1e-9);
-    if (headStep != null && step > headStep) toast('學得越多，頭越大！大腦尺寸 ×' + hs.toFixed(2));
-    headStep = step;
     const k = JSON.stringify(st.avatar) + '|' + hs.toFixed(2);
     if (k !== faceKey) { faceKey = k; const u = G.avatar.playerIcon(st.avatar, hs); if (u) $('hud-face').src = u; }
     const d = store.daily();
@@ -119,6 +115,7 @@
   }
   function openPlace(l) {
     store.markVisited(l);
+    if (G.ai) G.ai.setLesson(l);   // AI 助教改用這堂課的重點回答
     const reg = l.region;
     const near = G.world.island === l.spot.island && Math.hypot(G.world.playerPos().x - l.spot.x, G.world.playerPos().z - l.spot.z) < 6;
     const prog = store.lessonProgress(l);
@@ -282,6 +279,13 @@
 
   /* ---------- 航海圖 ---------- */
   function openMap() {
+    // 用第一版的 3D 六角群島地圖（js/chart.js）；這台電腦畫不了第二個 3D 畫面時，改用下面的簡易圓圈版
+    const chart = G.chart && G.chart.node();
+    if (chart) {
+      modal(chart, { cls: 'chart-card', onLeave: G.chart.close });
+      G.chart.open();
+      return;
+    }
     const isls = G.world.islands;
     const here = G.world.island;
     const svgNS = 'http://www.w3.org/2000/svg';
@@ -614,6 +618,9 @@
         } }),
         el('button', { class: 'btn', type: 'button', text: '匯入存檔', onclick: () => file.click() }), file, resetBtn,
       ]),
+      G.ai ? el('h4', { text: 'AI 助教（Gemini）' }) : null,
+      G.ai ? el('p', { class: 'hint', text: G.ai.ready() ? '已連接，模型：' + G.ai.model + '。金鑰只存在這個瀏覽器。' : '用你自己的 Google Gemini API 金鑰，就能問 AI 助教、請 AI 解釋題目和幫面試題評分。' }) : null,
+      G.ai ? el('div', { class: 'setrow' }, [el('button', { class: 'btn', type: 'button', text: G.ai.ready() ? '金鑰與模型設定' : '連接 Gemini', onclick: () => { closeModal(); G.ai.open({ setup: true }); } })]) : null,
       el('h4', { text: '說明' }),
       el('div', { class: 'setrow' }, [el('button', { class: 'btn', type: 'button', text: '重看新手教學', onclick: () => tutorial(0) })]),
       el('p', { class: 'hint', text: '操作：WASD／方向鍵走路（Shift 跑步；手機用左下角的搖桿）、點課程建築會自動走過去、拖曳轉鏡頭、滾輪縮放、E 或空白鍵互動、Esc 關閉視窗。' }),
@@ -651,6 +658,7 @@
   function bind() {
     $('hud-me').addEventListener('click', openProfile);
     $('btn-map').addEventListener('click', openMap);
+    $('btn-ai').addEventListener('click', () => G.ai.open());
     $('btn-list').addEventListener('click', () => toggleDrawer());
     $('btn-bugs').addEventListener('click', () => openBugs());
     $('btn-daily').addEventListener('click', openDaily);

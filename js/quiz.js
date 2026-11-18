@@ -215,15 +215,26 @@
       clock.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
     }, 500);
     const reveal = el('button', { class: 'btn primary', type: 'button', text: '我講完了，看參考答案' });
+    const typed = el('textarea', { placeholder: G.ai ? '想打字整理思緒可以寫在這裡；寫下回答的話，看答案時可以請 AI 評分（不會存檔）' : '想打字整理思緒可以寫在這裡（不會存檔）', rows: 3 });
     body.appendChild(el('div', { class: 'iv-box' }, [
       el('p', { text: '面試官在等你回答。先不要看答案，用自己的話講 1–2 分鐘（講出聲音效果最好）。' }),
       el('div', { class: 'iv-timer' }, [el('span', { text: '已經講了 ' }), clock]),
-      el('textarea', { placeholder: '想打字整理思緒可以寫在這裡（不會存檔）', rows: 3 }),
+      typed,
     ]));
     foot.appendChild(reveal);
     reveal.addEventListener('click', () => {
       clearInterval(timer);
       reveal.remove();
+      if (G.ai) {   // 請 Gemini 依參考要點幫打字的回答評分（只是參考，通過與否還是看下面的自評）
+        const gradeHost = el('div');
+        const gradeBtn = el('button', { class: 'btn', type: 'button', text: '🤖 請 AI 幫我評分', onclick: () => {
+          const ans = typed.value.trim();
+          if (ans.length < 10) { G.ui.toast('先在上面的框框打下你的回答（至少 10 個字），AI 才能評分'); typed.focus(); return; }
+          gradeBtn.disabled = true;
+          G.ai.grade(q, ans, gradeHost).then(() => { gradeBtn.disabled = false; gradeBtn.textContent = '🤖 重新評分'; });
+        } });
+        body.appendChild(el('div', { class: 'iv-ai' }, [gradeBtn, gradeHost]));
+      }
       const checks = q.points.map((p) => {
         const cb = el('input', { type: 'checkbox' });
         return { cb, node: el('label', { class: 'pt' }, [cb, el('span', { html: rich(p) })]) };
@@ -341,7 +352,14 @@
       res.bugCaught ? bugBox(res.bugCaught, true) : null,
       detail || null,
       q.explain ? el('p', { class: 'explain', html: rich(q.explain) }) : null,
-      el('button', { class: 'linkbtn', type: 'button', text: '看這個概念的重點卡', onclick: () => toggleCard(fb, q.concept) }),
+      el('div', { class: 'fb-links' }, [
+        el('button', { class: 'linkbtn', type: 'button', text: '看這個概念的重點卡', onclick: () => toggleCard(fb, q.concept) }),
+        // 請 Gemini 解釋：帶上題目、正確答案、解析，答錯的話也帶上玩家選的選項
+        G.ai ? el('button', { class: 'linkbtn', type: 'button', text: '🤖 請 AI 解釋這題', onclick: () => {
+          const w = body.querySelector('.opt.wrong span');
+          G.ai.explain(q, correct, w ? w.textContent : '');
+        } }) : null,
+      ]),
     ]);
     body.appendChild(fb);
     const last = S.i >= S.list.length - 1;

@@ -226,8 +226,10 @@
     return iconCache[type];
   }
   function playerIcon(a, headS) {
-    const s = headS || 1, up = 0.3 * (s - 1);          // 頭變大時，鏡頭跟著往上、往後一點，才拍得到整顆頭
-    return snap(makePlayer(a, s).group, [0, 1.15 + up, 1.6 * (0.75 + 0.25 * s)], [0, 0.95 + up, 0], 128);
+    // 取景：從胸口（高度約 0.25）拍到頭頂。頭越大頭頂越高（約 0.8 + 0.57 × 倍數），
+    // 鏡頭就往上、往後退，整顆頭都拍得到；身體留在畫面下半部，看得出頭比身體大
+    const s = headS || 1, lookY = 0.525 + 0.285 * s, dist = 1.03 + 1.065 * s;
+    return snap(makePlayer(a, s).group, [0, lookY + 0.2, dist], [0, lookY, 0], 128);
   }
   function guideIcon() { if (iconCache._guide == null) iconCache._guide = snap(makeGuide().group, [0.15, 0.9, 1.55], [0, 0.66, 0], 128); return iconCache._guide; }
 

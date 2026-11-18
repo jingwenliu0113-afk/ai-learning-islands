@@ -114,6 +114,7 @@
   let state = blank();
   let saveTimer = null;
   let storageOk = true;
+  let headTotal = 0;        // 全部題數（算頭的大小用，第一次用到時才數）
 
   const dayStr = (t) => {
     const d = new Date(t || Date.now());
@@ -428,11 +429,13 @@
       });
       return { concepts, built, mastered, islands, islandsDone, questions, seen, solved, due: store.dueQuestions().length, weak: store.weakQuestions().length };
     },
-    /** 頭的大小：答對過的題越多頭越大。一開始長得快、之後慢慢變慢，最大約 1.7 倍
-     *  （答對 50 題約 1.13 倍、250 題約 1.44 倍、全部 1349 題約 1.7 倍） */
+    /** 頭的大小：答對過的題越多頭越大，全部答對剛好 2.5 倍。
+     *  前面長得比後面快一點（1349 題時：50 題約 1.1 倍、300 題約 1.55 倍、一半約 2 倍、全部 2.5 倍） */
     headScale(solved) {
       const n = solved == null ? store.totals().solved : solved;
-      return 1 + 0.7 * (1 - Math.exp(-n / 250));
+      if (!headTotal) G.lessons.forEach((l) => l.concepts.forEach((c) => { headTotal += c.questions.length; }));
+      const x = Math.min(1, n / Math.max(1, headTotal));                 // 答對的比例 0～1
+      return 1 + 1.5 * (1 - Math.exp(-1.5 * x)) / (1 - Math.exp(-1.5));   // 比例 1 時剛好 1 + 1.5 = 2.5
     },
     log(text) {
       state.log.unshift({ t: Date.now(), text });

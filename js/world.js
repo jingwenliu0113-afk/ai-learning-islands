@@ -951,7 +951,7 @@
   const lookV = new T.Vector3();
   function frame(ts) {
     requestAnimationFrame(frame);
-    if (document.hidden) return;
+    if (document.hidden || api.paused) return;   // 航海圖打開時主畫面暫停，不要兩個 3D 畫面一起畫
     const dt = Math.min(0.05, (ts - last) / 1000 || 0.016);
     last = ts;
     update(dt);
@@ -992,7 +992,7 @@
       }
     }
     // 鏡頭
-    const tgt = camFocus || { x: P.x, z: P.z, y: 0.9 };
+    const tgt = camFocus || { x: P.x, z: P.z, y: 0.9 + 0.35 * (player.headScale() - 1) };   // 頭變大時鏡頭看高一點
     // 坐船時船速很快（每秒幾十單位），慢慢追會被甩在後面，所以直接鎖在船上；走路時才平滑跟隨
     const k = sail && !camFocus ? 1 : Math.min(1, dt * (camFocus ? 3 : 6));
     cam.tx += (tgt.x - cam.tx) * k; cam.tz += (tgt.z - cam.tz) * k; cam.ty += ((tgt.y || 0.9) - cam.ty) * k;
@@ -1063,6 +1063,7 @@
   /* ---------- 對外介面 ---------- */
   const api = (G.world = {
     ok: false,
+    paused: false,   // true 時主畫面不更新（航海圖打開時）
     init() {
       stage = document.getElementById('stage');
       canvas = document.getElementById('scene');
