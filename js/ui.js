@@ -106,6 +106,7 @@
 
   /* ---------- 地點面板（一堂課） ---------- */
   function startRound(r) {
+    if (r.boss && G.interviewer) { G.interviewer.choose(r); return; }   // Boss：可以選 AI 面試官或自評
     G.quiz.start({ title: '第 ' + r.lesson.no + ' 堂', questions: G.util.shuffle(r.questions.slice()), mode: 'round', round: r, lesson: r.lesson });
   }
   function startWeeds(l) {
@@ -457,6 +458,7 @@
       const s = store.itemState(key, it);
       const on = draft[key] === it.id;
       return el('button', { type: 'button', class: 'item' + (on ? ' on' : '') + (s.ok ? '' : ' locked'), onclick: () => {
+        if (!s.ok && s.rare) { toast('「' + it.name + '」是稀有裝扮：' + s.why + '才拿得到'); return; }
         if (!s.ok && s.why) { toast('要 ' + s.why + ' 才能穿'); return; }
         if (!s.ok && s.buy) {
           if (store.state.coins < s.buy) { toast('金幣不夠（要 ' + s.buy + '）'); return; }
@@ -464,7 +466,7 @@
           store.buyItem(key, it); snd('coin'); refreshHud();
         }
         draft[key] = it.id; openWardrobe(tab, draft);
-      } }, [el('span', { text: it.name }), !s.ok ? el('em', { text: s.why ? '🔒 ' + s.why : '🪙 ' + s.buy }) : null]);
+      } }, [el('span', { text: it.name }), !s.ok ? el('em', { text: s.rare ? '✨ ' + s.why : s.why ? '🔒 ' + s.why : '🪙 ' + s.buy }) : null]);
     }));
     const nameIn = el('input', { type: 'text', maxlength: 12, placeholder: '你想被怎麼稱呼？', value: draft.name || '' });
     nameIn.addEventListener('input', () => { draft.name = nameIn.value; });
@@ -619,8 +621,8 @@
         el('button', { class: 'btn', type: 'button', text: '匯入存檔', onclick: () => file.click() }), file, resetBtn,
       ]),
       G.ai ? el('h4', { text: 'AI 助教（Gemini）' }) : null,
-      G.ai ? el('p', { class: 'hint', text: G.ai.ready() ? '已連接，模型：' + G.ai.model + '。金鑰只存在這個瀏覽器。' : '用你自己的 Google Gemini API 金鑰，就能問 AI 助教、請 AI 解釋題目和幫面試題評分。' }) : null,
-      G.ai ? el('div', { class: 'setrow' }, [el('button', { class: 'btn', type: 'button', text: G.ai.ready() ? '金鑰與模型設定' : '連接 Gemini', onclick: () => { closeModal(); G.ai.open({ setup: true }); } })]) : null,
+      G.ai ? el('p', { class: 'hint', text: G.ai.ready() ? '已連接，模型：' + G.ai.model + '。' : '輸入遊戲作者給的通行碼（用分享的額度），或貼上自己的 Gemini API 金鑰，就能問 AI 助教、請 AI 解釋題目、挑戰 AI 面試官。' }) : null,
+      G.ai ? el('div', { class: 'setrow' }, [el('button', { class: 'btn', type: 'button', text: G.ai.ready() ? '連線設定' : '連接 Gemini', onclick: () => { closeModal(); G.ai.open({ setup: true }); } })]) : null,
       el('h4', { text: '說明' }),
       el('div', { class: 'setrow' }, [el('button', { class: 'btn', type: 'button', text: '重看新手教學', onclick: () => tutorial(0) })]),
       el('p', { class: 'hint', text: '操作：WASD／方向鍵走路（Shift 跑步；手機用左下角的搖桿）、點課程建築會自動走過去、拖曳轉鏡頭、滾輪縮放、E 或空白鍵互動、Esc 關閉視窗。' }),
@@ -634,6 +636,7 @@
     ['先上課，再闖關', '每個地點先上一堂小課（鏡頭會帶你看每棟概念建築，還有不扣分的小測驗），再挑戰關卡，最後一關是 Boss：面試官。也可以按「我已經會了，直接挑戰」。'],
     ['錯誤會變成蟲', '答錯會冒出一隻野生的蟲。之後答對同一題就抓到牠，收進蟲蟲圖鑑。每一種蟲都在提醒你一種常見的錯誤。'],
     ['雜草就是該複習了', '答過的題目會在 1、3、7、21 天後回來，到時候那裡會長雜草。每天先拔草，連續天數會累積金幣。'],
+    ['島上還有很多事', '每座島的碼頭盡頭可以釣魚（魚上鉤要答題）、島上每天藏一個寶箱、島民會給你支線任務；坐船時可能遇到海怪或漂流瓶。我的小島有遊戲機台：翻牌配對和 60 秒快問快答。Boss 可以挑戰 AI 面試官（要先在右上角「🤖 AI 助教」連接 Gemini）。'],
     ['看下面的「下一步」', '不知道要做什麼時，按畫面下方的「出發」，我會帶你去。想直接選課就用右上角的「清單」。所有島都可以直接去，不用照順序。'],
   ];
   function tutorial(i) {
@@ -681,7 +684,7 @@
 
   G.ui = {
     modal, closeModal, toast, isBlocking, closeAll, refresh, refreshHud, bind,
-    openPlace, startRound, startWeeds, openMap, travelConfirm, openDaily, openBugs, openWardrobe, openBuild, openProfile,
+    openPlace, startRound, startWeeds, startSelfBoss: (r) => G.quiz.start({ title: '第 ' + r.lesson.no + ' 堂', questions: G.util.shuffle(r.questions.slice()), mode: 'round', round: r, lesson: r.lesson }), openMap, travelConfirm, openDaily, openBugs, openWardrobe, openBuild, openProfile,
     guideTalk, levelUp, checkLevel, tutorial, interviewSetup, goPlace,
   };
 })();

@@ -29,6 +29,9 @@
     levelup: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, i * 0.08, 0.35, 'triangle', 0.11)); tone(1568, 0.45, 0.5, 'sine', 0.08); },
     sail: () => { tone(196, 0, 0.6, 'sine', 0.06); tone(247, 0.25, 0.6, 'sine', 0.05); },
     click: () => tone(1200, 0, 0.04, 'sine', 0.04),
+    splash: () => { tone(320, 0, 0.12, 'sine', 0.08); tone(180, 0.05, 0.25, 'triangle', 0.06); },
+    chest: () => { [392, 523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.07, 0.25, 'triangle', 0.09)); },
+    monster: () => { tone(110, 0, 0.5, 'sawtooth', 0.05); tone(82, 0.2, 0.6, 'sawtooth', 0.05); },
   };
   G.sound = {
     play(name) {

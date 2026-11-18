@@ -54,10 +54,12 @@
     hat: [
       { id: 'none', name: '不戴' }, { id: 'beanie', name: '毛帽' }, { id: 'cap', name: '棒球帽', price: 60 },
       { id: 'straw', name: '草帽', lv: 3 }, { id: 'grad', name: '學士帽', lv: 8 }, { id: 'crown', name: '皇冠', lv: 12 },
+      { id: 'pirate', name: '海盜帽', rare: '開寶箱' }, { id: 'fisher', name: '漁夫帽', rare: '釣到傳說魚' },
     ],
     acc: [
       { id: 'none', name: '不戴' }, { id: 'glasses', name: '眼鏡' }, { id: 'scarf', name: '圍巾', lv: 4 },
       { id: 'backpack', name: '背包', price: 50 }, { id: 'headphones', name: '耳機', price: 80 }, { id: 'badge', name: '面試名牌', lv: 10 },
+      { id: 'parrot', name: '鸚鵡', rare: '完成島民任務' },
     ],
   };
   const DEFAULT_AVATAR = { name: '', skin: 1, hair: 'short', hairColor: 1, outfit: 'tee', outfitColor: '#e8735a', hat: 'none', acc: 'none' };
@@ -110,6 +112,7 @@
     stars: {}, course: {}, courseStep: {}, daily: { date: '', done: false, task: null },
     shields: 0, streakPaid: {}, avatar: Object.assign({}, DEFAULT_AVATAR), owned: {}, home: {},
     pos: null, levelSeen: 1,
+    play: {},   // 新玩法：魚簍、寶箱、島民任務、小遊戲紀錄（play.js 管理）
   });
   let state = blank();
   let saveTimer = null;
@@ -131,6 +134,7 @@
     s.bugs = Object.assign(b.bugs, obj.bugs || {});
     s.avatar = Object.assign({}, DEFAULT_AVATAR, obj.avatar || {});
     s.daily = Object.assign(b.daily, obj.daily || {});
+    s.play = Object.assign({}, obj.play || {});
     s.v = 2;
     return s;
   }
@@ -222,6 +226,7 @@
       state.coins += res.coins;
       store.touchStreak(now);
       store.save();
+      if (store.onAnswer) store.onAnswer(q, correct, res);   // 島民任務的進度（play.js）
       return res;
     },
     /** 課程中的小測驗：不影響複習排程，答對 +3 XP */
@@ -354,6 +359,7 @@
     /* ---------- 打扮與小島 ---------- */
     itemState(kind, item) {
       if (!item || typeof item !== 'object') return { ok: true };
+      if (item.rare && !state.owned[kind + ':' + item.id]) return { ok: false, why: item.rare, rare: true };   // 稀有裝扮：只能從冒險拿到
       if (item.lv && store.level().lv < item.lv) return { ok: false, why: 'Lv ' + item.lv };
       if (item.price && !state.owned[kind + ':' + item.id]) return { ok: false, buy: item.price };
       return { ok: true };

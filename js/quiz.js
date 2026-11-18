@@ -489,5 +489,5 @@
     draw();
   }
 
-  G.quiz = { start, mini, showCards, cardNode, LEVEL_NAMES, TYPE_NAMES, detachKeys, get active() { return !!S; } };
+  G.quiz = { start, mini, mount: mountQuestion, showCards, cardNode, LEVEL_NAMES, TYPE_NAMES, detachKeys, get active() { return !!S; } };
 })();

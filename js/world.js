@@ -790,6 +790,7 @@
       const curve = seaPath(from, dest);
       const len = curve.getLength();
       sail = { curve, t: 0, d: Math.min(5, Math.max(2.4, len / 40)), dest, cb };
+      if (G.play && G.play.rollSeaEvent) { sail.event = G.play.rollSeaEvent(from, dest); sail.eventAt = 0.42 + Math.random() * 0.12; }
       boat.visible = true;
       G.sound && G.sound.play('sail');
     };
@@ -947,6 +948,7 @@
   }
 
   /* ---------- 主迴圈 ---------- */
+  const tickers = [];        // 每一格畫面都要呼叫的函式（play.js 註冊）
   let last = 0, clock = 0, timeCheck = 0;
   const lookV = new T.Vector3();
   function frame(ts) {
@@ -960,9 +962,16 @@
     clock += dt;
     stepPlayer(dt);
     player.animate(dt, sail ? 0 : P.speed);
+    tickers.forEach((fn) => fn(dt, clock));   // play.js 的動畫（寶箱、島民、海怪）
     // 搭船
     if (sail) {
-      sail.t += dt / sail.d;
+      // 航行到一半可能遇到事件（海怪、漂流瓶）：船停下來，事件結束再繼續開
+      if (sail.event && !sail.eventFired && sail.t >= sail.eventAt) {
+        sail.eventFired = true; sail.hold = true;
+        const s0 = sail;
+        G.play.seaEvent(sail.event, () => { s0.hold = false; });
+      }
+      if (!sail.hold) sail.t += dt / sail.d;
       const u = Math.min(1, sail.t), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
       const p = sail.curve.getPoint(e), q = sail.curve.getPoint(Math.min(1, e + 0.01));
       boat.position.set(p.x, -0.25 + Math.sin(clock * 3) * 0.06, p.z);
@@ -1193,5 +1202,37 @@
     stop() { P.target = null; P.path = []; P.onArrive = null; keys.clear(); },
     debug() { return { P, keys: [...keys], cam, sail: !!sail, focus: !!camFocus, calls: renderer.info.render.calls, tris: renderer.info.render.triangles }; },   // 測試用
     tick(sec) { const n = Math.round(sec * 30); for (let i = 0; i < n; i++) update(1 / 30); },   // 測試用：不靠 requestAnimationFrame 推進時間
+
+    /* ---------- 給 play.js（新玩法）用：放道具、加互動點、找空地 ---------- */
+    kit() { return { T, GEO, mat, part, tint }; },
+    addProp(obj) { scene.add(obj); return obj; },
+    removeProp(obj) { if (obj) scene.remove(obj); },
+    addCollider(id, c) { islandById[id].colliders.push(c); return c; },
+    removeCollider(id, c) { const a = islandById[id].colliders, i = a.indexOf(c); if (i >= 0) a.splice(i, 1); },
+    addInteract(id, it) { islandById[id].interact.push(it); return it; },
+    removeInteract(id, it) { const a = islandById[id].interact, i = a.indexOf(it); if (i >= 0) a.splice(i, 1); },
+    onTick(fn) { tickers.push(fn); },
+    boatPos() { return sail ? { x: boat.position.x, z: boat.position.z, ry: boat.rotation.y } : null; },
+    /** 在島上找一塊空地：不壓到路、廣場、碼頭、樹和建築。seed 決定位置（同一個 seed 每次都一樣） */
+    freeSpot(id, seed, pad) {
+      const isl = islandById[id];
+      const r = rng(seed);
+      pad = pad || 1.4;
+      for (let k = 0; k < 400; k++) {
+        const th = r() * Math.PI * 2, d = (0.25 + 0.65 * Math.sqrt(r())) * isl.R;
+        const x = isl.cx + Math.cos(th) * d, z = isl.cz + Math.sin(th) * d;
+        if (d > isl.rad(th) - 2.2) continue;
+        if (isl.kind === 'region') {
+          if (Math.abs(d - isl.ringR) < 2.2 || d < 6.2) continue;
+          if (isl.spots.some((s) => Math.hypot(s.x - x, s.z - z) < 5.6)) continue;
+        } else if (Math.hypot(x, z - 0.5) < 7 || Math.abs(x) < 2.6) continue;
+        let ad = th - isl.dockAng; ad = Math.atan2(Math.sin(ad), Math.cos(ad));
+        if (Math.abs(ad) * d < 3) continue;
+        if (isl.colliders.some((c) => Math.hypot(c.x - x, c.z - z) < c.r + pad)) continue;
+        if (isl.interact.some((it) => Math.hypot(it.x - x, it.z - z) < 2.6)) continue;
+        return { x, z };
+      }
+      return { x: isl.cx + isl.dock.dz * 6, z: isl.cz - isl.dock.dx * 6 };
+    },
   });
 })();
