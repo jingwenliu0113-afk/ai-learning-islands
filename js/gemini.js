@@ -1,6 +1,6 @@
 /* AI 助教：用 Google 的 Gemini API（預設模型 Gemini 4 Hydrogen）。兩種連法：
    - 分享的額度（shared）：送到遊戲作者的中繼站（Google Apps Script，網址在 js/config.js），
-     輸入作者私下給的通行碼就能用作者的免費額度。金鑰在中繼站裡，玩家看不到。
+     輸入作者私下給的通行碼就能用作者的 Gemini 額度。金鑰在中繼站裡，玩家看不到。
    - 自己的金鑰（own）：金鑰只存在這台電腦的這個瀏覽器，從瀏覽器直接送到 Google。
    兩種都不會把金鑰放進遊戲檔案或 GitHub，也不會跟著「匯出存檔」一起匯出。
    用法：右上角「🤖 AI 助教」聊天、答題後「請 AI 解釋這題」、面試題「請 AI 幫我評分」、Boss 戰的 AI 面試官。 */
@@ -73,7 +73,7 @@
     const m = String(msg || '');
     if (status === 400 && /api key/i.test(m)) return '金鑰無效。請確認有完整貼上（通常是 AIza 開頭的 39 個字元）。';
     if (status === 400) return '請求格式有問題：' + m;
-    if (status === 401 || status === 403) return '這把金鑰沒有權限。請確認這個 Google Cloud 專案已啟用「Generative Language API」，或金鑰的網址限制有沒有包含這個網站。（' + m + '）';
+    if (status === 401 || status === 403) return '這把金鑰沒有權限。請確認這個 Google Cloud 專案已啟用「Gemini API」（以前叫 Generative Language API）、金鑰的「API 限制」有勾 Gemini API，以及金鑰的網址限制有沒有包含這個網站。（' + m + '）';
     if (status === 404) return '找不到模型「' + cfg.model + '」。請按 ⚙ 換一個模型名稱。（' + m + '）';
     if (status === 429) return '超過免費額度或請求太頻繁，等一下再試。（' + m + '）';
     if (status >= 500) return 'Google 那邊暫時出問題，稍後再試。（' + status + '）';
@@ -130,9 +130,9 @@
     if (j.error === 'too_long') return '這次送出的內容太長了，按 🧹 清空對話再試。';
     if (j.error === 'no_key') return '中繼站還沒放金鑰，請告訴遊戲作者。';
     if (j.error === 'gemini') {
-      if (j.status === 429) return '共用的 Gemini 免費額度暫時用完了（每分鐘、每天都有上限），等一下再試。';
+      if (j.status === 429) return '共用的 Gemini 額度暫時用完了，或同時太多人在用，等一下再試。';
       if (j.status === 400 && /api key/i.test(j.message || '')) return '中繼站的金鑰失效了，請告訴遊戲作者。';
-      if (j.status === 401 || j.status === 403) return '中繼站的金鑰沒有權限，請告訴遊戲作者。';
+      if (j.status === 401 || j.status === 403) return '中繼站的金鑰沒有權限，或作者的額度用完了，請告訴遊戲作者。';
       return friendlyError(j.status, j.message);
     }
     return '中繼站回報錯誤：' + (j.error || '未知');
@@ -143,7 +143,7 @@
     const body = {
       systemInstruction: { parts: [{ text: system }] },
       contents: messages.map((m) => ({ role: m.role === 'model' ? 'model' : 'user', parts: [{ text: m.text }] })),
-      generationConfig: { maxOutputTokens: maxTokens || 2048 },
+      generationConfig: { maxOutputTokens: (maxTokens || 2048) + 4096 },   // 思考用的 token 也算在上限裡，多留空間
     };
     let res;
     try {
@@ -271,7 +271,7 @@
       pass.value = cfg.pass;
       setupEl.append(
         el('h4', { text: '用分享的 Gemini 額度' }),
-        el('p', { class: 'ai-note', text: '遊戲作者把自己的 Gemini 免費額度分享給朋友用。輸入他私下給你的通行碼就可以開始；每人每天有次數上限。' }),
+        el('p', { class: 'ai-note', text: '遊戲作者把自己的 Gemini 額度分享給朋友用。輸入作者私下給你的通行碼就可以開始；每人每天有次數上限。' }),
         el('label', { class: 'ai-field' }, [el('span', { text: '通行碼' }), pass]),
         modelField,
         el('p', { class: 'ai-note', text: '問題會經過作者的帳號送到 Google，請不要輸入個資。' }),
@@ -298,7 +298,7 @@
     const apply = () => { cfg.key = key.value.trim(); cfg.model = model.value.trim() || DEFAULT_MODEL; cfg.remember = remember.checked; saveCfg(); };
     setupEl.append(
       el('h4', { text: '用自己的 Gemini 金鑰' }),
-      el('p', { class: 'ai-note', html: '到 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 按「Create API key」；或在 Google Cloud Console 的專案裡啟用「Generative Language API」再建立 API 金鑰。' }),
+      el('p', { class: 'ai-note', html: '到 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> 按「Create API key」；或在 Google Cloud Console 的專案裡啟用「Gemini API」（以前叫 Generative Language API）再建立 API 金鑰。' }),
       el('label', { class: 'ai-field' }, [el('span', { text: 'API 金鑰' }), key]),
       modelField,
       el('label', { class: 'ai-check' }, [remember, el('span', { text: '記住金鑰（不勾的話，關掉分頁就要重貼）' })]),
