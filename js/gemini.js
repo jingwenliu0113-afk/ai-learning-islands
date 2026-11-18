@@ -348,7 +348,7 @@
   function renderLog() {
     logEl.innerHTML = '';
     if (!history.length) bubble('sys', isReady()
-      ? '<p>有什麼不懂的都可以問我。我會用這堂課的重點、照課程規則（繁體中文、英文(中文)、不做數學推導）回答。</p><p class="ai-small">回答由 Gemini 產生，可能有錯；跟講義不一樣時以講義為準。' +
+      ? '<p>有什麼不懂的都可以問我。我會根據這堂課的重點回答，用繁體中文、英文(中文)的寫法，不做數學推導。</p><p class="ai-small">回答由 Gemini 產生，可能有錯，重要的觀念請再查證。' +
         (cfg.mode === 'shared' && quotaLeft != null ? '今天還能問 ' + quotaLeft + ' 次。' : '') + '</p>'
       : '<p>要先連接 Gemini 才能用 AI 助教。按上面的 ⚙ ' + (SHARED_URL ? '輸入通行碼，或貼上你自己的 API 金鑰。' : '貼上你的 API 金鑰。') + '</p>');
     history.forEach((m) => bubble(m.role === 'user' ? 'me' : 'ai', m.role === 'user' ? '<p>' + G.util.esc(m.text).replace(/\n/g, '<br>') + '</p>' : md(m.text)));

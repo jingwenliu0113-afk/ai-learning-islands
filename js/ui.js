@@ -130,7 +130,7 @@
       el('div', { class: 'eyebrow', style: '--c:' + reg.color, text: reg.name + ' · 第 ' + l.no + ' 堂' }),
       el('h2', { text: l.title }),
       l.sub ? el('p', { class: 'dsub', text: l.sub }) : null,
-      !l.concepts.length ? el('p', { class: 'warnbox', text: '這堂課的題庫還沒有做好，先看教材。' }) : null,
+      !l.concepts.length ? el('p', { class: 'warnbox', text: '這堂課的題庫還沒有做好。' }) : null,
       l.concepts.length ? el('div', { class: 'course-card' + (done ? ' done' : '') }, [
         el('div', { class: 'cc-top', text: done ? '✓ 已經上完課' : '第一步：上課 · 約 ' + G.lesson.minutes(l) + ' 分鐘' }),
         el('b', { text: '小星帶你走過 ' + l.concepts.length + ' 個概念' }),
