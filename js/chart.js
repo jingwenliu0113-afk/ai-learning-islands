@@ -484,8 +484,9 @@
     camera.position.set(cam.tx + cam.dist * sp * Math.sin(cam.az), cam.dist * cp, cam.tz + cam.dist * sp * Math.cos(cam.az));
     camera.lookAt(cam.tx, 0.2, cam.tz);
   }
+  const MAX_DIST = 96;   // 鏡頭最遠距離（手機直式要拉遠一點才放得下整張圖）
   function clampCam() {
-    cam.dist = Math.min(72, Math.max(3.2, cam.dist));
+    cam.dist = Math.min(MAX_DIST, Math.max(3.2, cam.dist));
     cam.pol = Math.min(1.32, Math.max(0.1, cam.pol));
     cam.tx = Math.min(bounds.x1 + 4, Math.max(bounds.x0 - 4, cam.tx));
     cam.tz = Math.min(bounds.z1 + 4, Math.max(bounds.z0 - 4, cam.tz));
@@ -499,12 +500,16 @@
     camTween = { from, to, t: 0, d: (ms || 900) / 1000 };
   }
   function fitView(top) {         // 依全部島的範圍與畫面比例，算出剛好看得到整張地圖的鏡頭
-    const hx = (bounds.x1 - bounds.x0) / 2 + 1.6, hz = (bounds.z1 - bounds.z0) / 2 + 1.6;
+    // 手機直式畫面比較窄：地圖轉 90 度，讓群島長的那一邊（東西向）順著畫面的直向
+    const tall = W < H * 0.9;
+    let hx = (bounds.x1 - bounds.x0) / 2 + 1.6, hz = (bounds.z1 - bounds.z0) / 2 + 1.6;
+    if (tall) [hx, hz] = [hz, hx];
     const pol = top ? 0.1 : 0.68;
     const t = Math.tan((camera.fov / 2) * Math.PI / 180);
-    const aspect = Math.max(0.5, W / H);
-    const dist = Math.max(hx / (t * aspect), (hz * Math.cos(pol)) / t) * 1.06;
-    return { tx: (bounds.x0 + bounds.x1) / 2, tz: (bounds.z0 + bounds.z1) / 2 + (top ? 0 : 1.6), dist: Math.min(72, Math.max(20, dist)), az: 0, pol };
+    const aspect = Math.max(0.4, W / H);
+    const dist = Math.max(hx / (t * aspect), (hz * Math.cos(pol)) / t) * (tall ? 1.18 : 1.06);   // 直式畫面的島名牌比較寬，多留一點邊
+    const off = top ? 0 : 1.6;
+    return { tx: (bounds.x0 + bounds.x1) / 2 + (tall ? off : 0), tz: (bounds.z0 + bounds.z1) / 2 + (tall ? 0 : off), dist: Math.min(MAX_DIST, Math.max(20, dist)), az: tall ? Math.PI / 2 : 0, pol };
   }
 
   function bindInput() {
@@ -610,8 +615,8 @@
     layout();
     scene = new T.Scene();
     scene.background = new T.Color('#c4e9f6');
-    scene.fog = new T.Fog(new T.Color('#c4e9f6'), 80, 170);
-    camera = new T.PerspectiveCamera(36, 1, 0.5, 220);
+    scene.fog = new T.Fog(new T.Color('#c4e9f6'), 110, 230);
+    camera = new T.PerspectiveCamera(36, 1, 0.5, 280);
     raycaster = new T.Raycaster();
     makeGeos();
     lampMat = new T.MeshStandardMaterial({ color: '#fff1b8', emissive: '#ffc94a', emissiveIntensity: 0.05, roughness: 0.5 });
@@ -657,7 +662,7 @@
     scene.add(pin);
     buildLabels();
     bindInput();
-    new ResizeObserver(resize).observe(stage);
+    if (window.ResizeObserver) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);
     built = true;
     return true;
   }

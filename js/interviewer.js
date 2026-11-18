@@ -95,7 +95,7 @@
           const reply = await G.ai.ask({ system, messages: conv, signal: ctrl.signal, maxTokens: 600 });
           conv.push({ role: 'model', text: reply });
           wait.innerHTML = '<b>面試官</b>' + md(reply);
-          input.disabled = false; sendBtn.disabled = false; input.focus();
+          input.disabled = false; sendBtn.disabled = false; if (!G.util.touch()) input.focus();
         } catch (e) {
           if (e.name === 'AbortError') return;
           conv.pop(); answered--; paintDots();
@@ -174,7 +174,7 @@
     giveUp.addEventListener('click', () => { if (answered === 0) { G.ui.closeModal(); return; } evaluate(); });
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (!sendBtn.disabled) send(); } });
     G.ui.modal(box, { wide: true, onLeave: () => { if (ctrl) ctrl.abort(); } });
-    setTimeout(() => input.focus(), 50);
+    if (!G.util.touch()) setTimeout(() => input.focus(), 50);   // 手機不要一打開就跳鍵盤（會把題目擠出畫面）
     void finished;
   }
 

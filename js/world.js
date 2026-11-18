@@ -1139,7 +1139,7 @@
       bindInput();
       const tg = timeGoal(); night = nightGoal = tg[0]; dusk = tg[1];
       applyNight();
-      new ResizeObserver(resize).observe(stage);
+      if (window.ResizeObserver) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);   // 很舊的手機沒有 ResizeObserver
       resize();
       api.ok = true;
       requestAnimationFrame(frame);

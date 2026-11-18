@@ -104,7 +104,7 @@
         G.quiz.mini(st.q, host, (ok) => {
           C.answered[idx] = ok;
           G.world.guideSay(ok ? '答對了！你真的懂了。' : '差一點！看一下解析，之後關卡還會再遇到。', 0);
-          next.focus();
+          next.focus({ preventScroll: true });
         });
       }
     } else {

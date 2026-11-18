@@ -454,6 +454,8 @@
 
   /* ---------- 小工具 ---------- */
   G.util = {
+    /** 觸控裝置（手機、平板）：不要自動把游標放進輸入框，否則鍵盤一跳出來，畫面會被捲走、看不到題目 */
+    touch() { return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || document.body.classList.contains('touch'); },
     shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; },
     esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); },
     /** 把「英文(中文)」的中文註解包成較淡的樣式，並把 `code` 轉成 <code> */

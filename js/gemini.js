@@ -394,7 +394,7 @@
     if (!isReady() || opts.setup) { showSetup(true); return; }
     showSetup(false);
     if (opts.prompt) send(opts.prompt);
-    else setTimeout(() => inputEl.focus(), 50);
+    else if (!G.util.touch()) setTimeout(() => inputEl.focus(), 50);
   }
   function close() {
     if (!panel) return;
