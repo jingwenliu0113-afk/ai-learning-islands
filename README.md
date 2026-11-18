@@ -52,7 +52,7 @@
 
 **用自己的金鑰**：
 
-1. 到 [Google AI Studio](https://aistudio.google.com/apikey) 按「Create API key」。也可以在 Google Cloud Console 的專案裡啟用「Generative Language API」，再到「API 和服務 → 憑證」建立 API 金鑰。
+1. 到 [Google AI Studio](https://aistudio.google.com/apikey) 按「Create API key」。也可以在 Google Cloud Console 的專案裡啟用「Gemini API」（以前叫 Generative Language API），再到「API 和服務 → 憑證」建立 API 金鑰。
 2. 回到遊戲，按「🤖 AI 助教」→ ⚙ →「用自己的金鑰」→ 貼上金鑰 →「儲存並測試」。
 3. 想換模型就改模型名稱（預設 `gemini-4-hydrogen`）。
 
@@ -60,7 +60,7 @@
 
 - 金鑰只存在你這台電腦的這個瀏覽器（localStorage），從瀏覽器直接送到 Google，不會經過其他伺服器，也不會跟著「匯出存檔」一起匯出。
 - 在公用電腦上使用時，不要勾「記住金鑰」，用完按「清除金鑰」。
-- 建議到 Google Cloud Console 把金鑰的「API 限制」設成只能用 Generative Language API，並設定預算提醒。
+- 建議到 Google Cloud Console 把金鑰的「API 限制」設成只能用「Gemini API」，並設定預算提醒。
 - 用量照 Google 的價格計算，免費額度用完後可能會收費。
 
 AI 的回答可能有錯，跟課程內容不一致時以課程為準。
