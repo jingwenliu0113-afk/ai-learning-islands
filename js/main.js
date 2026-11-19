@@ -18,4 +18,7 @@
   // 每分鐘檢查一次到期的題目，讓雜草與名牌保持最新
   setInterval(() => { if (!document.hidden && !G.quiz.active) { G.world.refreshAll(); G.ui.refresh(); } }, 60000);
   window.addEventListener('error', (e) => { document.body.setAttribute('data-error', e.message || 'error'); });
+  // 載入畫面（index.html 的 #boot）：等 3D 世界畫出第一格再淡出，不會先看到一片空白的島
+  const boot = document.getElementById('boot');
+  if (boot) requestAnimationFrame(() => requestAnimationFrame(() => { boot.classList.add('done'); setTimeout(() => boot.remove(), 600); }));
 })();
