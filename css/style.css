@@ -300,7 +300,7 @@ textarea { width: 100%; border: 1.5px solid var(--line); border-radius: 10px; pa
 .lno { font-size: 12px; font-weight: 700; color: var(--c); width: 28px; flex: none; }
 .ltitle { flex: 1; min-width: 0; } .ltitle b { display: block; font-size: 14px; font-weight: 600; } .ltitle em { font-style: normal; font-size: 12px; color: var(--ink3); }
 .due, .lst { font-size: 12px; } .lst { color: #b07d10; }
-.mini { width: 40px; height: 5px; background: #ece3d0; border-radius: 99px; overflow: hidden; flex: none; }
+.lrow .mini { width: 40px; height: 5px; background: #ece3d0; border-radius: 99px; overflow: hidden; flex: none; border: 0; padding: 0; margin: 0; }
 .lrow .mini i { display: block; height: 100%; background: var(--c); }
 .empty { color: var(--ink3); text-align: center; }
 .logrow { display: flex; gap: 10px; font-size: 13px; padding: 5px 0; border-bottom: 1px dashed var(--line); }
@@ -594,6 +594,8 @@ body.night .spot-tag, body.night .isl-tag { background: rgba(255, 250, 240, .86)
 /* ---------- 釣魚：畫面下方的題目區（不是視窗，3D 場景照樣看得到） ---------- */
 .fish-hud { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); width: min(760px, calc(100% - 28px)); max-height: 46vh; overflow: auto; z-index: 30; background: rgba(255, 250, 240, .96); border-radius: 18px; box-shadow: 0 14px 40px rgba(30, 40, 60, .28); padding: 12px 16px 12px; animation: fh-up .25s ease; }
 .fish-hud[hidden] { display: none; }
+.fish-hud { scroll-padding-bottom: 72px; }   /* 捲動時把下方固定的按鈕列算進去 */
+.fish-hud.done { max-height: 70vh; }   /* 答完題放高一點，釣到的魚和解析都看得到 */
 @keyframes fh-up { from { opacity: 0; transform: translate(-50%, 24px); } }
 .fh-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 4px; }
 .fh-top b { font-size: 16px; } .fh-top span { font-size: 13px; color: var(--ink2); }
@@ -606,5 +608,5 @@ body.night .spot-tag, body.night .isl-tag { background: rgba(255, 250, 240, .86)
 .prompt.alert { background: #e74c3c; color: #fff; animation: fish-alert .35s ease-in-out infinite alternate; }
 .prompt.alert kbd { background: #fff; color: #e74c3c; }
 @keyframes fish-alert { from { scale: 1; } to { scale: 1.12; } }
-@media (max-width: 640px) { .fish-hud { bottom: 8px; width: calc(100% - 16px); max-height: 56vh; padding: 10px 12px; } .fh-foot { margin: 8px -12px -10px; padding: 8px 12px 10px; } }
+@media (max-width: 640px) { .fish-hud { bottom: 8px; width: calc(100% - 16px); max-height: 56vh; padding: 10px 12px; } .fish-hud.done { max-height: 78vh; } .fh-foot { margin: 8px -12px -10px; padding: 8px 12px 10px; } }
 body.fish-q #guidebar, body.fish-q #joy { visibility: hidden; }
