@@ -80,11 +80,19 @@
     }
     const inprog = G.lessons.find((l) => (store.state.courseStep[l.id] || 0) > 0 && !store.courseDone(l));
     if (inprog) return { text: '繼續上課：第 ' + inprog.no + ' 堂「' + inprog.title + '」', btn: '上課 →', go: () => goPlace(inprog, () => G.lesson.open(inprog)) };
+    const challenge = (l, r) => ({ text: '挑戰：第 ' + l.no + ' 堂' + (r.boss ? ' Boss 面試官' : '「' + r.title.replace(/\(.*?\)/g, '') + '」'), btn: '挑戰 →', go: () => goPlace(l, () => startRound(r)) });
+    // 先把開始過的那堂打完：上完課、或已經過了一關的課，還有沒過的關卡就先打，再去下一堂（釣魚、寶箱答到的題目不算開始）
+    for (const l of G.lessons) {
+      const rs = store.rounds(l);
+      if (!store.courseDone(l) && !rs.some((x) => store.stars(x.key))) continue;
+      const r = rs.find((x) => !store.stars(x.key));
+      if (r) return challenge(l, r);
+    }
     const fresh = G.lessons.find((l) => l.concepts.length && !store.courseDone(l) && !store.lessonStarted(l));
     if (fresh) return { text: '到第 ' + fresh.no + ' 堂「' + fresh.title + '」上課', btn: '出發 →', go: () => goPlace(fresh, () => G.lesson.open(fresh)) };
     for (const l of G.lessons) {
       const r = store.rounds(l).find((x) => !store.stars(x.key));
-      if (r) return { text: '挑戰：第 ' + l.no + ' 堂' + (r.boss ? ' Boss 面試官' : '「' + r.title.replace(/\(.*?\)/g, '') + '」'), btn: '挑戰 →', go: () => goPlace(l, () => startRound(r)) };
+      if (r) return challenge(l, r);
     }
     for (const l of G.lessons) {
       const r = store.rounds(l).find((x) => store.stars(x.key) < 3);
