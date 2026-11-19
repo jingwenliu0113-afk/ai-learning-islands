@@ -159,7 +159,8 @@
     reset() { state = blank(); state.tutorialDone = true; store.save(); },
     exportText() { return JSON.stringify(state); },
     importText(text) {
-      const obj = JSON.parse(text);
+      let obj = null;
+      try { obj = JSON.parse(text); } catch (e) { throw new Error('檔案內容不是存檔格式（請選「匯出存檔」下載的 .json 檔）'); }
       if (!obj || typeof obj !== 'object' || !obj.q) throw new Error('不是這個遊戲的存檔');
       state = migrate(obj);
       store.save();
@@ -238,18 +239,20 @@
       const td = dayStr(now);
       const st = state.streak;
       if (st.last === td) return;
+      const notes = [];
       if (!st.last) st.n = 1;
       else {
         const gap = dayIndex(td) - dayIndex(st.last) - 1;    // 中間漏掉幾天
         if (gap <= 0) st.n += 1;
-        else if (gap <= state.shields) { state.shields -= gap; st.n += 1; store.log('護盾保住了連續天數（用掉 ' + gap + ' 個）'); }
+        else if (gap <= state.shields) { state.shields -= gap; st.n += 1; store.log('護盾保住了連續天數（用掉 ' + gap + ' 個）'); notes.push('🛡️ 護盾保住了連續天數'); }
         else st.n = 1;
       }
       st.last = td;
       st.best = Math.max(st.best || 0, st.n);
       [[3, 20], [7, 50], [30, 200]].forEach(([k, c]) => {
-        if (st.n >= k && !state.streakPaid[k]) { state.streakPaid[k] = 1; state.coins += c; store.log('連續 ' + k + ' 天，獎勵 ' + c + ' 金幣'); }
+        if (st.n >= k && !state.streakPaid[k]) { state.streakPaid[k] = 1; state.coins += c; store.log('連續 ' + k + ' 天，獎勵 ' + c + ' 金幣'); notes.push('🔥 連續 ' + k + ' 天！+' + c + ' 金幣'); }
       });
+      if (notes.length && G.ui) setTimeout(() => G.ui.toast(notes.join('　')), 400);   // 不然只記在學習日誌，玩家不知道拿到了
     },
     streak() {
       const st = state.streak;

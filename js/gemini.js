@@ -278,6 +278,7 @@
         el('div', { class: 'ai-row' }, [
           el('button', { class: 'btn primary', type: 'button', text: '確認通行碼', onclick: async () => {
             cfg.pass = pass.value.trim(); cfg.model = model.value.trim() || DEFAULT_MODEL; cfg.sharedOk = false; saveCfg();
+            if (!cfg.pass) { status.textContent = '請先輸入通行碼。'; pass.focus(); return; }   // 空白就不用連到中繼站
             status.textContent = '確認中…';
             try {
               await askShared({ ping: true });          // 只檢查通行碼，不用額度
@@ -359,7 +360,7 @@
   async function send(text) {
     text = String(text || '').trim();
     if (!text || busy) return;
-    if (!isReady()) { showSetup(true); return; }
+    if (!isReady()) { showSetup(true); G.ui.toast('先在上面輸入通行碼（或自己的金鑰）連上 Gemini，才能發問'); return; }   // 不然按了送出沒有任何反應
     inputEl.value = '';
     history.push({ role: 'user', text });
     bubble('me', '<p>' + G.util.esc(text).replace(/\n/g, '<br>') + '</p>');

@@ -350,11 +350,11 @@
         el('span', { class: 'fire', text: '🔥' }),
         el('div', {}, [
           el('b', { text: '連續 ' + store.streak() + ' 天' }),
-          el('em', { text: store.answeredToday() ? '今天已經答題了，明天見！' : '今天還沒答題，答一題就能延續。' }),
+          el('em', { text: store.answeredToday() ? '今天已經答題了，明天見！' : store.streak() ? '今天還沒答題，答一題就能延續。' : st.streak.last ? '連續天數中斷了，今天答一題重新開始累積。' : '今天答一題，就開始累積連續天數。' }),
           el('em', { text: '最佳紀錄 ' + (st.streak.best || 0) + ' 天 · 連續 3 天 +20、7 天 +50、30 天 +200 金幣' }),
         ]),
         el('div', { class: 'shields' }, [
-          el('span', { text: '🛡'.repeat(st.shields) + '▫'.repeat(2 - st.shields) }),
+          el('span', { class: 'sh-slots', title: '護盾 ' + st.shields + ' / 2' }, [0, 1].map((k) => el('i', { class: k < st.shields ? 'on' : '', text: '🛡️' }))),
           shieldBtn,
           el('em', { text: '漏掉一天時，護盾會自動保住連續天數。' }),
         ]),
@@ -515,7 +515,7 @@
     modal(el('div', { class: 'build' }, [
       el('div', { class: 'eyebrow', text: '我的小島' }),
       el('h2', { text: '建造空地' }),
-      el('p', { class: 'hint', text: '每座島第一次答對一題會得到 1 個那個領域的素材。用素材在家旁邊的 ' + Object.keys(G.regions).length + ' 塊空地蓋裝飾，每個三級（5、10、20 個素材）。' }),
+      el('p', { class: 'hint', text: '每一題第一次答對，會得到 1 個那座島的素材。用素材在家旁邊的 ' + Object.keys(G.regions).length + ' 塊空地蓋裝飾，每個三級（5、10、20 個素材）。' }),
       el('div', { class: 'brows' }, rows),
     ]), { wide: true });
   }
@@ -577,7 +577,7 @@
     '每天先拔草！到期的複習題會長成雜草，重答一次就拔掉。',
     '答錯會冒出蟲，之後答對同一題就能抓到牠，收進蟲蟲圖鑑。',
     '沒用提示答對，可以多拿 20% XP。',
-    '每座島第一次答對題目會得到素材，可以回家蓋裝飾。',
+    '每一題第一次答對都會得到那座島的素材，可以回家蓋裝飾。',
     '面試題要用講的！先自己講 1–2 分鐘，再對答案。',
     '覺得走路太慢？右上角的「清單」可以直接選課。',
     '金幣可以買護盾，漏掉一天時保住連續天數。',

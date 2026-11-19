@@ -113,7 +113,7 @@
       if (!submit.isConnected) return;
       const n = parseInt(e.key, 10);
       if (n >= 1 && n <= btns.length && !btns[n - 1].disabled) btns[n - 1].click();
-      if (e.key === 'Enter' && !submit.disabled) submit.click();
+      if (e.key === 'Enter' && !submit.disabled) { e.preventDefault(); submit.click(); }   // 擋掉 Enter 的預設動作，不然焦點移到「下一題」後會直接跳過解析
     });
     return { hint() {
       const cand = btns.filter((b, j) => !ans.has(order[j]) && !b.disabled);
@@ -160,7 +160,7 @@
       const table = el('div', { class: 'answer-table' }, q.pairs.map((p) => el('div', {}, [el('b', { html: rich(p[0]) }), el('span', { html: rich(p[1]) })])));
       done(ok, ok ? null : table);
     });
-    keys((e) => { if (e.key === 'Enter' && submit.isConnected && !submit.disabled) submit.click(); });
+    keys((e) => { if (e.key === 'Enter' && submit.isConnected && !submit.disabled) { e.preventDefault(); submit.click(); } });
     return { hint() {
       const i = q.pairs.findIndex((_, k) => pairOf.get(k) !== k);
       if (i < 0) return;
@@ -197,7 +197,7 @@
       const table = el('ol', { class: 'answer-list' }, q.items.map((t) => el('li', { html: rich(t) })));
       done(ok, ok ? null : table);
     });
-    keys((e) => { if (e.key === 'Enter' && submit.isConnected && !submit.disabled) submit.click(); });
+    keys((e) => { if (e.key === 'Enter' && submit.isConnected && !submit.disabled) { e.preventDefault(); submit.click(); } });
     return { hint() {
       seq.splice(0).forEach((x) => pool.push(x));
       pool.splice(pool.indexOf(0), 1);
@@ -367,7 +367,7 @@
     next.addEventListener('click', () => { S.i++; if (S.i >= S.list.length) finish(false); else render(); });
     foot.appendChild(next);
     fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    keys((e) => { if (e.key === 'Enter') next.click(); });
+    keys((e) => { if (e.key === 'Enter') { e.preventDefault(); next.click(); } });
     next.focus({ preventScroll: true });
     G.ui.refreshHud();
   }

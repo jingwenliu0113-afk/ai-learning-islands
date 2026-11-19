@@ -357,7 +357,7 @@
   function newWait() { F.waitFor = 1.8 + Math.random() * 3.2; F.nibble = 0.6 + Math.random() * (F.waitFor - 0.8); }
   function hook() {
     F.rarity = rollRarity();
-    F.rid = F.rid0 || Object.keys(FISH)[Math.floor(Math.random() * 8)];
+    F.rid = F.rid0 || G.util.shuffle(Object.keys(FISH))[0];   // 我的小島：九座島的魚隨機（原本寫死 8，抽不到人工智慧導論）
     F.q = pickQ(F.rid, [EASY, MID, HARD][F.rarity]);
     setPhase('fight');
     G.world.hold = true;
@@ -680,7 +680,7 @@
   /* ---------- 航行事件：海怪、漂流瓶 ---------- */
   function rollSeaEvent(from, dest) {
     if (!store.state.tutorialDone || Math.random() > 0.4) return null;
-    const rid = dest.kind === 'region' ? dest.region.id : from && from.kind === 'region' ? from.region.id : Object.keys(G.regions)[Math.floor(Math.random() * 8)];
+    const rid = dest.kind === 'region' ? dest.region.id : from && from.kind === 'region' ? from.region.id : G.util.shuffle(Object.keys(G.regions))[0];
     return { kind: Math.random() < 0.55 ? 'monster' : 'bottle', rid };
   }
   function seaEvent(ev, resume) {
@@ -955,7 +955,7 @@
   G.play = {
     init, rollSeaEvent, seaEvent, arcade, basket, memory, quickStart, talk,
     fishing: { start: (id) => startFishing(G.world.islands.find((i) => i.id === id) || G.world.island), stop: stopFishing, get state() { return F ? { phase: F.phase, t: +F.t.toFixed(2), isl: F.isl.id, waitFor: F.waitFor, rarity: F.rarity, q: F.q ? F.q.id : null } : null; }, act: () => F && fishAct(F.isl) },   // 測試用
-    stats() { const p = ps(); return { fish: Object.keys(p.fish).length, fishTotal: 24, chests: p.chests, quests: p.done, monsters: p.monsters, quickBest: p.quick.best, memoryBest: p.memory.best }; },
+    stats() { const p = ps(); return { fish: Object.keys(p.fish).length, fishTotal: Object.keys(FISH).length * 3, chests: p.chests, quests: p.done, monsters: p.monsters, quickBest: p.quick.best, memoryBest: p.memory.best }; },
     debug() { return { chests: Object.keys(chests).map((r) => ({ r, open: chests[r].open, x: +chests[r].obj.position.x.toFixed(1), z: +chests[r].obj.position.z.toFixed(1) })), npcs: Object.keys(npcs) }; },   // 測試用
   };
 })();
