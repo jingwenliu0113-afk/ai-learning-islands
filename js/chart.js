@@ -397,10 +397,19 @@
     const far = cam.dist > 13;   // 遠景：課的名牌只留編號，另外顯示領域名稱
     if (far !== labelLayer.classList.contains('far')) labelLayer.classList.toggle('far', far);
     const selL = sel && sel.kind === 'lesson' ? sel.lesson : null;
+    // 相鄰兩格在畫面上隔幾像素：太擠（手機直式的全景）就只留島名，點島或雙指放大後再顯示課的編號
+    let crowd = false;
+    if (far) {
+      const step = S * SQ3;
+      pv.set(cam.tx, 0, cam.tz).project(camera); const x0 = pv.x, y0 = pv.y;
+      pv.set(cam.tx + step, 0, cam.tz).project(camera); const gx = Math.hypot((pv.x - x0) * W / 2, (pv.y - y0) * H / 2);
+      pv.set(cam.tx, 0, cam.tz + step).project(camera); const gz = Math.hypot((pv.x - x0) * W / 2, (pv.y - y0) * H / 2);
+      crowd = Math.min(gx, gz) < 18;
+    }
     tags.forEach((t) => {
       const isSel = t.l === selL;
       if (isSel !== t.sel) { t.sel = isSel; t.el.classList.toggle('sel', isSel); }
-      place(t, true);
+      place(t, !crowd || isSel);
     });
     regionTags.forEach((t) => place(t, far));
     place(homeTag, true);

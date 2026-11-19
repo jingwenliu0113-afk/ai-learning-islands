@@ -127,6 +127,9 @@
       }
       G.ui.refreshHud();
       onDone(correct, res);
+      // 視窗裡（寶箱、海怪、漂流瓶）答完題：捲到下面的按鈕，讓解析和「繼續」都看得到（手機上面板比較長）。釣魚另外處理。
+      const foot = host.parentElement && [...host.parentElement.children].find((c) => c.classList.contains('qz-foot'));
+      if (foot && foot.children.length && !host.closest('.fish-hud')) requestAnimationFrame(() => foot.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
     };
     G.quiz.mount(q, box, { noHint: true, onAnswered: (correct, detail, info, body) => finish(correct, detail, info, body) });
     if (limit) {
@@ -398,11 +401,16 @@
       el('button', { class: 'btn', type: 'button', text: '收竿', onclick: () => stopFishing() }),
       el('button', { class: 'btn primary', type: 'button', html: '<kbd>E</kbd> 再甩一竿', onclick: recast }),
     ]));
+    // 答完題面板放高一點，先從最上面（釣到的魚）開始；解析還被下方按鈕擋住時再捲下去
+    hud.classList.add('done');
     hud.scrollTop = 0;
+    const fb = host.querySelector('.fb');
+    if (fb) requestAnimationFrame(() => { if (fb.getBoundingClientRect().bottom > hud.getBoundingClientRect().bottom - 70) fb.scrollIntoView({ block: 'nearest' }); });
   }
   function showHud(children) {
     if (!hud) { hud = el('div', { class: 'fish-hud', role: 'region', 'aria-label': '釣魚' }); document.body.appendChild(hud); }
     hud.innerHTML = '';
+    hud.classList.remove('done');
     children.forEach((c) => hud.appendChild(c));
     hud.hidden = false;
     hud.scrollTop = 0;

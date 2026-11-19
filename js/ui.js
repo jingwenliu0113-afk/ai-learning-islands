@@ -81,7 +81,7 @@
     const inprog = G.lessons.find((l) => (store.state.courseStep[l.id] || 0) > 0 && !store.courseDone(l));
     if (inprog) return { text: '繼續上課：第 ' + inprog.no + ' 堂「' + inprog.title + '」', btn: '上課 →', go: () => goPlace(inprog, () => G.lesson.open(inprog)) };
     const fresh = G.lessons.find((l) => l.concepts.length && !store.courseDone(l) && !store.lessonStarted(l));
-    if (fresh) return { text: '下一站：到第 ' + fresh.no + ' 堂「' + fresh.title + '」上課', btn: '出發 →', go: () => goPlace(fresh, () => G.lesson.open(fresh)) };
+    if (fresh) return { text: '到第 ' + fresh.no + ' 堂「' + fresh.title + '」上課', btn: '出發 →', go: () => goPlace(fresh, () => G.lesson.open(fresh)) };
     for (const l of G.lessons) {
       const r = store.rounds(l).find((x) => !store.stars(x.key));
       if (r) return { text: '挑戰：第 ' + l.no + ' 堂' + (r.boss ? ' Boss 面試官' : '「' + r.title.replace(/\(.*?\)/g, '') + '」'), btn: '挑戰 →', go: () => goPlace(l, () => startRound(r)) };
