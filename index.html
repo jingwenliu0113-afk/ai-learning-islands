@@ -4,9 +4,36 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AI 學習群島</title>
-<link rel="stylesheet" href="css/style.css?v=42">
+<link rel="stylesheet" href="css/style.css?v=43">
+<style>
+  /* 載入畫面：寫在這裡，不用等 style.css 和 16 個程式檔下載完就能先顯示（main.js 畫出第一格 3D 畫面後淡出） */
+  #boot { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; background: linear-gradient(#cdeefa, #86cde3); font-family: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif; color: #3d3a34; transition: opacity .45s ease; }
+  #boot.done { opacity: 0; pointer-events: none; }
+  #boot .boot-card { width: min(300px, 80vw); text-align: center; background: rgba(255, 250, 240, .92); border-radius: 20px; padding: 22px 24px 18px; box-shadow: 0 16px 40px rgba(30, 60, 80, .18); }
+  #boot .boot-isl { font-size: 42px; line-height: 1; display: inline-block; animation: boot-bob 1.6s ease-in-out infinite; }
+  #boot b { display: block; font-size: 20px; margin: 8px 0 4px; }
+  #boot span { display: block; font-size: 13.5px; color: #7a7366; min-height: 1.4em; }
+  #boot i { display: block; height: 8px; margin-top: 12px; border-radius: 99px; background: #ece3d0; overflow: hidden; }
+  #boot em { display: block; height: 100%; width: 6%; border-radius: 99px; background: #4a8fd6; transition: width .25s ease; }
+  @keyframes boot-bob { 50% { transform: translateY(-6px); } }
+</style>
 </head>
 <body>
+<div id="boot" role="status" aria-live="polite"><div class="boot-card"><div class="boot-isl" aria-hidden="true">🏝️</div><b>AI 學習群島</b><span id="boot-msg">載入中…</span><i><em id="boot-bar"></em></i></div></div>
+<script>
+  /* 載入進度：每下載完一個程式檔就往前一格；出錯或太久時換提示文字 */
+  (function () {
+    var n = 0, bar = document.getElementById('boot-bar'), msg = document.getElementById('boot-msg'), boot = document.getElementById('boot');
+    var busy = function () { return boot.isConnected && !boot.classList.contains('done'); };
+    try {
+      new PerformanceObserver(function (list) {
+        list.getEntries().forEach(function (e) { if (/\.js(\?|$)/.test(e.name)) { n++; bar.style.width = Math.min(95, 6 + n * 6) + '%'; } });
+      }).observe({ type: 'resource', buffered: true });
+    } catch (e) {}
+    setTimeout(function () { if (busy()) msg.textContent = '還在載入…網路比較慢時要多等一下'; }, 8000);
+    window.addEventListener('error', function () { if (busy()) msg.textContent = '載入失敗，請重新整理頁面再試一次。'; });
+  })();
+</script>
 <div id="app">
   <div id="stage">
     <canvas id="scene"></canvas>
@@ -51,20 +78,20 @@
 </div>
 
 <script src="js/lib/three.min.js"></script>
-<script src="js/config.js?v=42"></script>
+<script src="js/config.js?v=43"></script>
 <script>window.GAME_SHARED = true;</script>
-<script src="data/content.js?v=42"></script>
-<script src="js/store.js?v=42"></script>
-<script src="js/sound.js?v=42"></script>
-<script src="js/avatar.js?v=42"></script>
-<script src="js/world.js?v=42"></script>
-<script src="js/chart.js?v=42"></script>
-<script src="js/quiz.js?v=42"></script>
-<script src="js/lesson.js?v=42"></script>
-<script src="js/gemini.js?v=42"></script>
-<script src="js/play.js?v=42"></script>
-<script src="js/interviewer.js?v=42"></script>
-<script src="js/ui.js?v=42"></script>
-<script src="js/main.js?v=42"></script>
+<script src="data/content.js?v=43"></script>
+<script src="js/store.js?v=43"></script>
+<script src="js/sound.js?v=43"></script>
+<script src="js/avatar.js?v=43"></script>
+<script src="js/world.js?v=43"></script>
+<script src="js/chart.js?v=43"></script>
+<script src="js/quiz.js?v=43"></script>
+<script src="js/lesson.js?v=43"></script>
+<script src="js/gemini.js?v=43"></script>
+<script src="js/play.js?v=43"></script>
+<script src="js/interviewer.js?v=43"></script>
+<script src="js/ui.js?v=43"></script>
+<script src="js/main.js?v=43"></script>
 </body>
 </html>
