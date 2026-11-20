@@ -967,7 +967,7 @@
   const lookV = new T.Vector3();
   function frame(ts) {
     requestAnimationFrame(frame);
-    if (document.hidden || api.paused) return;   // 航海圖打開時主畫面暫停，不要兩個 3D 畫面一起畫
+    if (document.hidden || api.paused || api.idle) return;   // 航海圖打開時主畫面暫停，不要兩個 3D 畫面一起畫；掛機聽 Podcast 時也暫停（idle）
     const dt = Math.min(0.05, (ts - last) / 1000 || 0.016);
     last = ts;
     update(dt);
@@ -1087,6 +1087,7 @@
   const api = (G.world = {
     ok: false,
     paused: false,   // true 時主畫面不更新（航海圖打開時）
+    idle: false,     // true 時主畫面不更新（掛機聽 Podcast，js/podcast.js 管理）
     init() {
       stage = document.getElementById('stage');
       canvas = document.getElementById('scene');

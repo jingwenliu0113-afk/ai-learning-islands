@@ -11,6 +11,7 @@
   }
   try { if (G.play && G.world.ok) G.play.init(); } catch (e) { console.error(e); }   // 新玩法：釣魚、寶箱、島民、遊戲機台
   G.ui.bind();
+  try { if (G.podcast) G.podcast.init(); } catch (e) { console.error(e); }   // Podcast 節目表與播放器
   G.ui.refresh();
   G.store.state.levelSeen = Math.max(G.store.state.levelSeen || 1, G.store.level().lv);
   if (!G.store.state.tutorialDone) G.ui.tutorial(0);

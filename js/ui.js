@@ -134,6 +134,7 @@
     const rounds = store.rounds(l);
     const bugs = store.activeBugs(l);
     const ls = store.lessonStars(l);
+    const pod = G.podcast && G.podcast.forLesson(l.id);   // 這堂有 Podcast 的話，多一顆「聽這堂」
     const node = el('div', { class: 'place' }, [
       el('div', { class: 'eyebrow', style: '--c:' + reg.color, text: reg.name + ' · 第 ' + l.no + ' 堂' }),
       el('h2', { text: l.title }),
@@ -147,6 +148,7 @@
           el('button', { class: 'btn primary', type: 'button', text: done ? '複習課程' : step > 0 ? '繼續上課' : '開始上課', onclick: () => { closeModal(); if (!near) goPlace(l, () => G.lesson.open(l, done)); else G.lesson.open(l, done); } }),
           !done ? el('button', { class: 'btn', type: 'button', text: '我已經會了，直接挑戰', onclick: () => { const r = rounds[0]; if (r) startRound(r); } }) : null,
           el('button', { class: 'btn ghost', type: 'button', text: '重點卡', onclick: () => G.quiz.showCards(l, 0) }),
+          pod ? el('button', { class: 'btn ghost', type: 'button', text: '🎧 聽這堂（約 ' + Math.max(1, Math.round(pod.seconds / 60)) + ' 分鐘）', onclick: () => { closeModal(); G.podcast.play(pod.id); } }) : null,
         ]),
       ]) : null,
       l.concepts.length ? el('div', { class: 'pstats' }, [
